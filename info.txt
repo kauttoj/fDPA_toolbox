@@ -1,0 +1,121 @@
+---------------------
+NeuroCine Data Processing Assistant (fDPA)
+Yevhen Hlushchuk, Janne Kauttonen and Eerik Puska 2011-2014
+(Based on Data Processing Assistant for Resting-State fMRI (DPARSF) by YAN Chao-Gan
+at State Key Laboratory of Cognitive Neuroscience and Learning, Beijing Normal University, China)
+---------------------
+
+-Start the toolbox by running fDPA.m, which opens GUI
+-You must have SPM8 oe SPM12 (recommended) installed and added to the Matlab paths.
+-Typical run always starts with folders "FunRaw" (DICOM EPI) and "T1Raw" (DICOM T1),
+which contain subfolders for all subjects. If you run the pipeline second time for the same data,
+you typically use converted "T1Img" and skip "T1Raw" DICOM conversion.
+-You can test the pipeline by loading "testdata_parameters.mat" and pressing Go,
+which runs the default pipeline for the data in folder "testdata_Siemens".
+During the pipeline, new folders and data is created at different stages of processing.
+
+27.2.2014
+Janne Kauttonen
+
+
+
+
+----Some notes about the pipeline----
+
+Latest DPARSFA pipeline goes as follows:
+1	convert DICOM -> NII (fun + T1)
+2	reorient&crop T1
+3	reorient T1 interactively (OPTIONAL)
+4	check fun. parameters (TR, slice number, voxels size etc.)
+5	remove first slices
+6	slice timing
+7	realign (motion correction) -> voxel specific motion regressors (OPTIONAL)
+8	reorient fun. interactively (OPTIONAL)
+9	coregister T1 to fun. space
+10	reorient T1&fun interactively (OPTIONAL)
+11	T1 segmentation
+12	DARTEL
+13	warp into original space (OPTIONAL)
+14	remove nuisance (Choice 1)
+15	temporal filter (Choice 1)
+16	normalize EPI
+17	spatial smooth
+18	detrend
+19	temporal filter (Choice 2)
+20	remove nuisance (Choice 2)
+21	scrubbing
+
+fDPA (old version) was like this:
+1	convert DICOM -> NII (fun + T1)
+2	remove first volumes
+3	slice timing
+4	realign (motion correction)
+5	reorient T1 interactively, apply to EPIs (OPTIONAL)
+6   normalize (9 steps)
+6.1	move origo, "automatic reorient" (OPTIONAL)
+6.2	bias correction (new T1)
+6.3	T1 segmentation + normalization + skullstripping (get transformation)
+6.4 AFNI skullstrip
+6.5	coregistering (T1 + EPIs + meanEPIs -> new T1)
+6.6	coregistering (EPIs -> T1 space [using mean EPI])
+6.7	EPI normalization (apply transformation)
+6.8	T1 normalization (apply tranformation)	
+6.9 generate images
+7 DRIFTER
+8 Detrend
+9 ArtRep
+10 Smooth
+11 Filter
+12 remove covariables
+13 compute contrasts
+14 convert to 4D nifti
+15 compute group EPI mask
+
+fDPA (current version). Changed main T1 processing at the beginning.
+1	convert DICOM -> NII (T1)
+2	reorient T1 interactively, apply to EPIs (OPTIONAL)
+3       skullstrip or segment/normalize T1
+4	convert DICOM -> NII (Fun)
+5	remove first volumes
+6	slice timing
+7	realign (motion correction)
+8	apply manual reorient matrices to functional (OPTINAL)
+9.1	EPI bias correction (mean EPI)
+9.2	coregistering (EPIs + meanEPIs -> T1)
+9.3	EPI normalization (apply transformation)
+9.4	T1 normalization (apply tranformation)	
+9.5	generate images
+10 	DRIFTER
+11 	Detrend
+12 	DVARS
+13 	ArtRep
+14 	Smooth
+15 	Filter
+16 	remove covariables
+17 	compute contrasts
+18 	convert to 4D nifti
+19 	compute group EPI mask
+
+About the difference between old and new segmentation (from SPM history 2012 article)
+
+From the queries on the SPM mailing list, it became apparent that the original unified segmentation implementation needed to be made more stable. This was achieved by modelling the whole head – rather than just the brain. In addition, the hope was that by identifying various non-brain tissue classes, a number of other useful things could be achieved. In particular, the identification of air-tissue boundaries in the head should make it possible to properly model much of the distortion artefact found in fMRI. This version was given the imaginative name of “New Segment”, although in future SPM releases it will just to be called “Segment”. Because the algorithmic changes from Ashburner and Friston, (2005) were relatively trivial, it was not written up.
+Dartel (Ashburner, 2007) is a framework that was intended to achieve more accurate alignment among the brains of different subjects. An early implementation appeared as an update to SPM5, but a more finessed version was released with SPM8. Image registration essentially involves fitting a model to the data, where the model parameters encode the relative shapes of whatever the images represent. It was developed in the hope that more detailed and accurate representations of the relative shapes of brains would lead to a better understanding of the differences and similarities among various populations of subjects. In addition, aligning all scans to the population average (Ashburner and Friston, 2009) should improve the internal consistency of the approach.
+More accurate alignment across subjects should also benefit fMRI studies. After spatial normalisation, one would hope that signal changes appear in similar locations in the data of all subjects in a study, which ought to reduce the need for spatial smoothing, thus allowing more precise localisation of brain function. Dartel works by aligning images of grey and white matter across subjects. The use of anatomical data to drive the alignment of functional data is limited because distortions in fMRI scans preclude accurate rigid-body alignment between functional and anatomical scans. Therefore, spatial normalisation may often be more effective for fMRI if driven by grey and white matter segmented from the fMRI themselves.
+Dartel was originally intended to be an approximation of a more mathematically correct geodesic shooting approach, which models deformations via an evolving dynamical system. Since then, a Geodesic Shooting toolbox (Ashburner and Friston, 2011) was introduced in a late update of SPM8, which should be more effective in studies where the aim is to understand differences among populations (Ashburner and Klöppel, 2011). Theoretically, it achieves slightly more accurate alignment across subjects than Dartel, with more precise localisation of volumetric differences.
+
+
+How motion correction flow works in fDPA:
+
+1. DICOM -> IMG. All imgs in the same space with identical headers, motion is present in matrix data
+2. Realign: est & write. Modifies headers and outputs a resliced mean image of realigned EPIs. All images are now aligned (e.g. check with mricron or SPM).
+   NOTE! In DPARSFA, reslicing (=matrix data + header modification) is done for all EPIs resulting in identical headers (1. EPI as a reference) for all EPIs. 
+   This is skipped in fPDA in order to avoid interpolating twice (realign AND normalization). In fDPA all matrix data remains untouched until normalization step.
+3. Apply manual reorient: Modifies headers with the same matrix for all EPI + mean image (simple shifting + translating operation)
+4. The mean image is coregistered with skullstripped T1 and the same transformation is applied to all EPIs. EPIs and T1 are now aligned, but EPI headers remain different.
+5. Normalization: All EPIs are transformed into MNI space via deformations and reslicing (interpolations). All EPI headers are now identical and match MNI space.
+
+Steps 1-4 are performed in the same folder, i.e., steps 2-4 always overwrite the previous step data (headers).
+
+NOTE: If you want to work with unnormalized EPIs, all EPIs must be resliced after step 4. Then one can convert EPIs into 4D file. However, header matrix (now the same for all EPIs) is not orthogonal, hence you cannot use "load_nii".
+
+

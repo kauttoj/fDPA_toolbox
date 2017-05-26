@@ -1,0 +1,15 @@
+% List of open inputs
+% Image Calculator: Input Images - cfg_files
+nrun = X; % enter the number of runs here
+stripJobfile = {'/root/matlab/spm8/spm8/toolbox/fDPA_12092012/Jobmats/skullstrip_job.m'};
+stripjobs = repmat(stripJobfile, 1, 1);
+c1Img=dir('c1*.img');
+c2Img=dir('c2*.img');
+c3Img=dir('c3*.img');
+images{1} = mT1ImageFile;
+images{2} = [dirToGoTo filesep c1Img];
+images{3} = [dirToGoTo filesep c2Img];
+images{4} = [dirToGoTo filesep c3Img];
+inputs{1, 1} = images; % Image Calculator: Input Images - cfg_files
+spm('defaults', 'FMRI');
+spm_jobman('serial', stripjobs, '', inputs{:});
