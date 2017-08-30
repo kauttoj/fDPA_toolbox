@@ -131,7 +131,7 @@ if (AutoDataProcessParameter.IsNeedConvertT1DCM2IMG==1)
         OutputDir=[AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i}];
         
         if exist(OutputDir,'dir')
-            oldFiles=dir([OutputDir,filesep,'*.img']);
+            oldFiles=give_filelist([OutputDir,filesep,'*.img']);%dir([OutputDir,filesep,'*.img']);            
             if ~isempty(oldFiles)
                 fprintf('Old T1 *.img files found for %s -- deleting them all!\n',AutoDataProcessParameter.SubjectID{i});
                 for k=1:length(oldFiles)
@@ -166,11 +166,11 @@ else
         for i=1:AutoDataProcessParameter.SubjectNum
             OutputDir=[AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i}];
             
-            DirDCM=dir([OutputDir,filesep,'co*.img']);
+            DirDCM=give_filelist([OutputDir,filesep,'co*.img']);
             if ~isempty(DirDCM)
                 fprintf('co*.img already found, skipping\n')
             else
-                DirDCM=dir([OutputDir,filesep,'*.img']); %Revised by YAN Chao-Gan 100130. %DirDCM=dir([AutoDataProcessParameter.DataProcessDir,filesep,'T1Raw',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.*']);
+                DirDCM=give_filelist([OutputDir,filesep,'*.img']); %Revised by YAN Chao-Gan 100130. %DirDCM=dir([AutoDataProcessParameter.DataProcessDir,filesep,'T1Raw',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.*']);
                 InputFilename=[AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i},filesep,DirDCM(1).name];
                 
                 OldDirTemp=pwd; %Added by YAN Chao-Gan 100130.
@@ -248,7 +248,7 @@ if (AutoDataProcessParameter.IsManualAlignment==1 && AutoDataProcessParameter.Is
         if exist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'ReorientT1ImgMat.mat'],'file')
             fprintf('Reorienting matrix already found for subject %s, skipping\n',AutoDataProcessParameter.SubjectID{i});
         else
-            DirT1Img=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']);
+            DirT1Img=give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']);
             if isempty(DirT1Img)
                 DirT1Img=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.nii.gz']);% Search .nii.gz and unzip; YAN Chao-Gan, 120806.
                 if length(DirT1Img)==1
@@ -332,9 +332,9 @@ if (AutoDataProcessParameter.IsNormalize>1)
     
     % Check in co* image exist. Added by YAN Chao-Gan 100510.
     cd(AutoDataProcessParameter.SubjectID{1});
-    DirCo=dir('co*.img');
+    DirCo=give_filelist('co*.img');
     if isempty(DirCo)
-        DirImg=dir('*.img');
+        DirImg=give_filelist('*.img');
         if length(DirImg)==1
             warning('!!! No co* T1 image (T1 image which is reoriented to the nearest orthogonal direction to ''canonical space'' and removed excess air surrounding the individual as well as parts of the neck below the cerebellum) is found !!!');
             button = 'Yes';
@@ -376,7 +376,7 @@ if (AutoDataProcessParameter.IsNormalize>1)
         all_SourceFile = [];
         
         for i=1:AutoDataProcessParameter.SubjectNum
-            CoDir=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']);
+            CoDir=give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']);
             
             if ~isempty(findstr(CoDir(1).name,'_OLD'))
                 error('co* T1 image contains identifier "_OLD", this should not happen! Terminating.');
@@ -476,7 +476,7 @@ if (AutoDataProcessParameter.IsNormalize>1)
         for i=1:AutoDataProcessParameter.SubjectNum
             
             cd([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i}]);
-            DirImg=dir('c1co*.img');
+            DirImg=give_filelist('c1co*.img');
             if isempty(DirImg)
                 DirImg=dir('c1co*.nii');
             end
@@ -491,7 +491,7 @@ if (AutoDataProcessParameter.IsNormalize>1)
             fprintf(['Generating the pictures for checking segmentation (GM): ',AutoDataProcessParameter.SubjectID{i},' OK\n']);
             
             cd([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i}]);
-            DirImg=dir('skullstripped.img');
+            DirImg=give_filelist('skullstripped.img');
             %fDPA_Normalized_TempImage =fullfile(tempdir,['DPARSF_Normalized_TempImage','_',rest_misc('GetCurrentUser'),'.img']);
             %y_Reslice(DirImg(1).name,fDPA_Normalized_TempImage,[1 1 1],0)
             reslice_nii(DirImg(1).name,fDPA_Normalized_TempImage,[1,1,1],1,0,2);
@@ -521,7 +521,7 @@ if (AutoDataProcessParameter.IsNormalize>1)
                 
                 needselection = 1;
                 if isempty(dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'FAST_biascorrected_*.nii']))
-                    CoDir=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']);
+                    CoDir=give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']);
                     
                     if ~isempty(findstr(CoDir(1).name,'_OLD'))
                         error('co* T1 image contains identifier "_OLD", cannot continue!');
@@ -685,7 +685,7 @@ if (AutoDataProcessParameter.IsNeedConvertFunDCM2IMG==1)
             fprintf(['Converting Functional Images:',AutoDataProcessParameter.SubjectID{i},' OK\n']);
             
             cd(OutputDir);
-            DirImg=dir('*.img');
+            DirImg=give_filelist('*.img');
             all_timepoints(i,SES)=length(DirImg);
             
             if AutoDataProcessParameter.TimePoints>0 && AutoDataProcessParameter.TimePoints~=length(DirImg)
@@ -761,7 +761,7 @@ if ~( strcmpi(AutoDataProcessParameter.StartingDirName,'T1Raw') || strcmpi(AutoD
         for SES=1:AutoDataProcessParameter.Sessions
             for i=1:AutoDataProcessParameter.SubjectNum
                 cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i}]);
-                DirImg=dir('*.img');
+                DirImg=give_filelist('*.img');
                 if isempty(DirImg)  %YAN Chao-Gan, 111114. Also support .nii files. % Either in .nii.gz or in .nii
                     DirImg=dir('*.nii.gz');  % Search .nii.gz and unzip; YAN Chao-Gan, 120806.
                     if length(DirImg)==1
@@ -900,7 +900,7 @@ if (AutoDataProcessParameter.RemoveFirstTimePoints>0 && AutoDataProcessParameter
         cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir]);
         for i=1:AutoDataProcessParameter.SubjectNum
             cd(AutoDataProcessParameter.SubjectID{i});
-            DirImg=dir('*.img');
+            DirImg=give_filelist('*.img');
             if length(DirImg)~=AutoDataProcessParameter.TimePoints(i,SES)
                 error('Number of Images in Folder Does Not Match the Number of Volumes. Cannot Remove First ');
             end
@@ -943,7 +943,7 @@ if (AutoDataProcessParameter.IsSliceTiming==1)
         cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir]);
         for i=1:AutoDataProcessParameter.SubjectNum
             cd(AutoDataProcessParameter.SubjectID{i});
-            DirImg=dir('*.img');
+            DirImg=give_filelist('*.img');
             if length(DirImg)~=AutoDataProcessParameter.TimePoints(i,SES)
                 error('Number of files does not match TimePoints!');
             end
@@ -1039,9 +1039,9 @@ if (AutoDataProcessParameter.IsRealign==1)
             
             cd(AutoDataProcessParameter.SubjectID{i});
             if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                DirImg=dir('a*.img');
+                DirImg=give_filelist('a*.img');
             else
-                DirImg=dir('*.img');
+                DirImg=give_filelist('*.img');
             end
             if length(DirImg)~=AutoDataProcessParameter.TimePoints(i,SES)
                 error('Number of images does not match timepoints!')
@@ -1215,9 +1215,9 @@ if AutoDataProcessParameter.IsNormalize>1 && AutoDataProcessParameter.IsManualAl
                 cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i}]);
                 
                 if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                    DirImg=dir('a*.img');
+                    DirImg=give_filelist('a*.img');
                 else
-                    DirImg=dir('*.img');
+                    DirImg=give_filelist('*.img');
                 end
                 
                 if isempty(DirImg)  %YAN Chao-Gan, 111114. Also support .nii files.
@@ -1242,7 +1242,7 @@ if AutoDataProcessParameter.IsNormalize>1 && AutoDataProcessParameter.IsManualAl
                 
                 % We must also transform EPI mean  !!! VERY IMPORTANT !!!
                 cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i}]);
-                DirImg=dir('*.img');
+                DirImg=give_filelist('*.img');
                 
                 HasMean=false;
                 %                 HasGrandMean=false;
@@ -1299,9 +1299,9 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
             for i=1:AutoDataProcessParameter.SubjectNum
                 cd(AutoDataProcessParameter.SubjectID{i});
                 if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                    DirImg=dir('a*.img');
+                    DirImg=give_filelist('a*.img');
                 else
-                    DirImg=dir('*.img');
+                    DirImg=give_filelist('*.img');
                 end
                 if length(DirImg)~=AutoDataProcessParameter.TimePoints(i,SES)
                     error('Number of images does not match timepoints!');
@@ -1310,7 +1310,7 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
                 for j=1:length(DirImg)
                     FileList=[FileList;{[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,DirImg(j).name,',1']}];
                 end
-                MeanFilename=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'mean*.img']);
+                MeanFilename=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'mean*.img']);
                 MeanFilename=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},filesep,MeanFilename.name,',1'];
                 if i~=1
                     jobs{1,1}.spatial{1,1}.normalise{1,1}.estwrite.subj=[jobs{1,1}.spatial{1,1}.normalise{1,1}.estwrite.subj,jobs{1,1}.spatial{1,1}.normalise{1,1}.estwrite.subj(1,1)];
@@ -1351,9 +1351,9 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
         
         % Check in co* image exist. Added by YAN Chao-Gan 100510.
         cd(AutoDataProcessParameter.SubjectID{1});
-        DirCo=dir('co*.img');
+        DirCo=give_filelist('co*.img');
         if isempty(DirCo)
-            DirImg=dir('*.img');
+            DirImg=give_filelist('*.img');
             if length(DirImg)==1
                 warning('!!! No co* T1 image (T1 image which is reoriented to the nearest orthogonal direction to ''canonical space'' and removed excess air surrounding the individual as well as parts of the neck below the cerebellum) is found !!!');
             else
@@ -1369,7 +1369,8 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
         %         if AutoDataProcessParameter.IsMultisession==1
         %             meanImageFileFilter = 'grand_mean*.img';% if no BIAS correction is applied (which adds 'm' as prefix) then one uses normal mean
         %         else
-        meanImageFileFilter = 'mean*.img';% if no BIAS correction is applied (which adds 'm' as prefix) then one uses normal mean
+        meanImageFileFilter = 'mean*.img';% if no BIAS correction is applied (which adds 'm' as prefix) then one uses normal mean                
+        
         %         end
         if (AutoDataProcessParameter.BiasCorrectmeanEPI == 1) % should be moved to before the coregistration step!!!!
             
@@ -1377,7 +1378,7 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
                 clear matlabbatch;
                 run([ProgramPath,filesep,'Jobmats',filesep,'BiasCorrectmeanEPI_job.m']);
                 for i = 1:AutoDataProcessParameter.SubjectNum
-                    meanImageFileDir = dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,...
+                    meanImageFileDir = give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,...
                         'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},...
                         filesep,meanImageFileFilter]);
                     matlabbatch{i}.spm.spatial.preproc.data = {[AutoDataProcessParameter,MULTISESSION_PREFIX.DataProcessDir,filesep,...
@@ -1393,7 +1394,7 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
                 
                 load([ProgramPath,filesep,'Jobmats',filesep,'BiasCorrectmeanEPISPM12.mat']);
                 for i = 1:AutoDataProcessParameter.SubjectNum
-                    meanImageFileDir = dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,...
+                    meanImageFileDir = give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,...
                         'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},...
                         filesep,meanImageFileFilter]);
                     matlabbatch{i,1}.spm.tools.oldseg.data = {[AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,...
@@ -1429,7 +1430,7 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
         for i=1:AutoDataProcessParameter.SubjectNum
             %NOTE: below the source and the template(anat) images have
             %been swapped by EP and YH to correspond to SPM8 manual 05/2011
-            MeanDir=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'RealignParameter',...
+            MeanDir=give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'RealignParameter',...
                 filesep,AutoDataProcessParameter.SubjectID{i},filesep,meanImageFileFilter]);
             SourceFile=[AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},filesep,MeanDir(1).name,',1'];
             RefDir=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'skullstripped.img']);%YH 03/2013 modified the default coregistration to skull-stripped
@@ -1446,9 +1447,9 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
             for SES = 1:AutoDataProcessParameter.Sessions
                 
                 if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                    DirImg=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'a*.img']);
+                    DirImg=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'a*.img']);
                 else
-                    DirImg=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
+                    DirImg=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
                 end
                 
                 FileList=cell(length(DirImg),1);
@@ -1493,9 +1494,9 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
                     cd(AutoDataProcessParameter.SubjectID{i});
                     
                     if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                        DirImg=dir('a*.img');
+                        DirImg=give_filelist('a*.img');
                     else
-                        DirImg=dir('*.img');
+                        DirImg=give_filelist('*.img');
                     end
                     
                     if length(DirImg)~=AutoDataProcessParameter.TimePoints(i,SES)
@@ -1527,9 +1528,9 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
             jobs=[];
             for i=1:AutoDataProcessParameter.SubjectNum
                 
-                T1Dir=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'mco*.img']);
+                T1Dir=give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'mco*.img']);
                 if isempty(T1Dir)
-                    T1Dir=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']); %co...img will be used if mco...img cannot be found.
+                    T1Dir=give_filelist([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'co*.img']); %co...img will be used if mco...img cannot be found.
                 end
                 FileList=cell(1);
                 FileList(1)={[AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,T1Dir(1).name]};
@@ -1558,9 +1559,9 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
                 for i=1:AutoDataProcessParameter.SubjectNum
                     cd(AutoDataProcessParameter.SubjectID{i});
                     if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                        DirImg=dir('a*.img');
+                        DirImg=give_filelist('a*.img');
                     else
-                        DirImg=dir('*.img');
+                        DirImg=give_filelist('*.img');
                     end
                     MatFile=dir([AutoDataProcessParameter.DataProcessDir,MULTISESSION_PREFIX,filesep,'T1ImgSegment',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'y_*.nii']);
                     if length(MatFile)>1
@@ -1584,9 +1585,9 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
             matlabbatch = {};
             for i=1:AutoDataProcessParameter.SubjectNum
                 cd(AutoDataProcessParameter.SubjectID{i});
-                T1Dir=dir('mco*.nii');
+                T1Dir=give_filelist('mco*.nii');
                 if isempty(T1Dir)
-                    T1Dir=dir('co*.img'); %co...img will be used if mco...img cannot be found.
+                    T1Dir=give_filelist('co*.img'); %co...img will be used if mco...img cannot be found.
                 end
                 FileList=T1Dir;
                 T1Dir = dir('c1co*.nii');
@@ -1651,7 +1652,7 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
                     DPARSF_rest_sliceviewer_Cfg.Config(1).Overlay.Opacity=0.2;
                     DPARSF_rest_sliceviewer('ChangeOverlay', h);
                     for i=1:AutoDataProcessParameter.SubjectNum
-                        Dir=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
+                        Dir=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
                         Filename=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,Dir(1).name];
                         fDPA_Normalized_TempImage =fullfile(tempdir,['DPARSF_Normalized_TempImage','_',rest_misc('GetCurrentUser'),'.img']);
                         y_Reslice(Filename,fDPA_Normalized_TempImage,[1 1 1],0)
@@ -1673,7 +1674,7 @@ if (AutoDataProcessParameter.IsNormalize>0 && AutoDataProcessParameter.IsNormali
                     nii=load_nii(Ch2Filename);
                     mat_base=nii.img;
                     for i=1:AutoDataProcessParameter.SubjectNum
-                        Dir=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
+                        Dir=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
                         Filename=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,Dir(end).name];
                         fDPA_Normalized_TempImage =fullfile(tempdir,['DPARSF_Normalized_TempImage','_',rest_misc('GetCurrentUser'),'.img']);
                         y_Reslice(Filename,fDPA_Normalized_TempImage,[1 1 1],0);
@@ -1761,9 +1762,9 @@ if (AutoDataProcessParameter.IsNormalize==4)
             cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir]);
             cd(AutoDataProcessParameter.SubjectID{i});
             if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                DirImg=dir('a*.img');
+                DirImg=give_filelist('a*.img');
             else
-                DirImg=dir('*.img');
+                DirImg=give_filelist('*.img');
             end
             
             a = [AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,TargetDir,filesep,AutoDataProcessParameter.SubjectID{i}];
@@ -1797,7 +1798,7 @@ if (AutoDataProcessParameter.IsNormalize==4)
                 DPARSF_rest_sliceviewer_Cfg.Config(1).Overlay.Opacity=0.2;
                 DPARSF_rest_sliceviewer('ChangeOverlay', h);
                 for i=1:AutoDataProcessParameter.SubjectNum
-                    Dir=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
+                    Dir=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
                     Filename=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,Dir(1).name];
                     fDPA_Normalized_TempImage =fullfile(tempdir,['DPARSF_Normalized_TempImage','_',rest_misc('GetCurrentUser'),'.img']);
                     y_Reslice(Filename,fDPA_Normalized_TempImage,[1 1 1],0)
@@ -1819,7 +1820,7 @@ if (AutoDataProcessParameter.IsNormalize==4)
                 nii=load_nii(Ch2Filename);
                 mat_base=nii.img;
                 for i=1:AutoDataProcessParameter.SubjectNum
-                    Dir=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
+                    Dir=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
                     Filename=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,Dir(end).name];
                     fDPA_Normalized_TempImage =fullfile(tempdir,['DPARSF_Normalized_TempImage','_',rest_misc('GetCurrentUser'),'.img']);
                     y_Reslice(Filename,fDPA_Normalized_TempImage,[1 1 1],0);
@@ -1908,9 +1909,9 @@ if (AutoDataProcessParameter.FinalizeEPIs==1)
             cd(AutoDataProcessParameter.SubjectID{i});
             
             if (AutoDataProcessParameter.IsSliceTiming==1) % Compatibility with the new optional slice timing correction. /EP
-                DirImg=dir('a*.img');
+                DirImg=give_filelist('a*.img');
             else
-                DirImg=dir('*.img');
+                DirImg=give_filelist('*.img');
             end
             if length(DirImg)~=AutoDataProcessParameter.TimePoints(i,SES)
                 error('Number of images does not match timepoints!')
@@ -1960,9 +1961,9 @@ if (AutoDataProcessParameter.FinalizeEPIs==1)
             
             cd([MySourceDir,filesep,AutoDataProcessParameter.SubjectID{i}]);
             if (AutoDataProcessParameter.IsSliceTiming==1)
-                DirImg=dir('ra*.img');
+                DirImg=give_filelist('ra*.img');
             else
-                DirImg=dir('r*.img');
+                DirImg=give_filelist('r*.img');
             end
             FileList=cell(length(DirImg),1);
             for j=1:length(DirImg)
@@ -2192,7 +2193,7 @@ if (AutoDataProcessParameter.VolumeArtifactRemoval==1)
             OutputDir=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,TargetDir,filesep,AutoDataProcessParameter.SubjectID{i}];
             mkdir(OutputDir);
             
-            DirImg=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
+            DirImg=give_filelist([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
             InputImages=[];
             for j=1:length(DirImg)
                 InputImages = [InputImages; AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,DirImg(j).name];
@@ -2243,7 +2244,7 @@ if (AutoDataProcessParameter.IsSmooth==1)
         cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir]);
         for i=1:AutoDataProcessParameter.SubjectNum
             cd(AutoDataProcessParameter.SubjectID{i});
-            DirImg=dir('*.img');
+            DirImg=give_filelist('*.img');
             if length(DirImg)~=AutoDataProcessParameter.TimePoints(i,SES)
                 error('Number of images does not match timepoints!')
             end
@@ -2306,7 +2307,7 @@ if (AutoDataProcessParameter.IsFilter==1 && AutoDataProcessParameter.IsNormalize
                 
                 cd(AutoDataProcessParameter.SubjectID{i});
                 
-                DirImg=dir('*.img');
+                DirImg=give_filelist('*.img');
                 if ~isCorrectOrder(DirImg)
                     error('Wrong order!')
                 end
@@ -2380,7 +2381,7 @@ if (AutoDataProcessParameter.NiiConversion==1 && AutoDataProcessParameter.IsNorm
             for i=1:AutoDataProcessParameter.SubjectNum
                 
                 cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i}]);
-                DirImg=dir('*.img');
+                DirImg=give_filelist('*.img');
                 
                 if ~isCorrectOrder(DirImg)
                     error('Order of slices incorrect!');
@@ -2451,7 +2452,7 @@ if (AutoDataProcessParameter.CreateGroupMask==1 && AutoDataProcessParameter.IsNo
                     struc=load_nii([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'4D.nii']);
                     imgs=struc.img;
                 else
-                    DirImg=dir('*.img');
+                    DirImg=give_filelist('*.img');
                     if ~isCorrectOrder(DirImg)
                         error('Order of slices incorrect!');
                     end
@@ -2853,5 +2854,23 @@ else
     spm_jobman('initcfg');
     spm_jobman('run',matlabbatch);
 end
+
+end
+
+
+function [res,new_str] = give_filelist(str)
+
+res = dir(str);
+
+if isempty(res) 
+    ind = strfind(str,'.img');
+    if ~isempty(ind)
+        ind = ind(end);
+        str(ind:(ind+3))='.nii';
+        res = dir(str);  
+    end
+end
+
+new_str = str;
 
 end
