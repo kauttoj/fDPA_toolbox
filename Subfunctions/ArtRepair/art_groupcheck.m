@@ -70,6 +70,9 @@ function art_groupcheck(Action)
 %     
 % Jenny Drexler, August 2007.
 % pkm, v.4, Mar 2009  adds scaling, and option for art_groupoutlier
+% bug fix in file reading, M. Schmitgen. 2013.
+% pkm, supports SPM12. Dec14
+% pkm, supports .nii format, Aug15.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -79,15 +82,16 @@ function art_groupcheck(Action)
 %   An experiment session may contain 300-600 volumes.
 %   The number of volumes affects the loading speed.
 MAXSIZE = 510340;   %  About 50 MB is allowed into program storage.
-spm_defaults;
+
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
 
 % IMAGE GRAPH LIMIT. - Max and min of contrast image display is 2%. 
 GRAPHSCALE = 75;   
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
 
 % GET THE USER'S INPUTS
 if (nargin==0)  % For calling in line with arguments
@@ -102,7 +106,7 @@ if (nargin==0)  % For calling in line with arguments
     load SPM;
     % load contrast image names
     for(i=1:SPM.nscan(1))
-        F{i} = SPM.xY.P{i};
+        F{i} = SPM.xY.P{i}(1:end-2);
     end
     nFsize = size(F,2);
     % STORE DESIGN MATRIX
@@ -155,7 +159,14 @@ if (nargin==0)  % For calling in line with arguments
     
     % Find the percent scaling factors automatically. 
     % Set the mask by the group level 'mask.img,1' image
-    GroupMaskName = fullfile(dirSPM,'mask.img');
+    % Set flag to .img or .nii filetype.
+    imgtype=2;
+    if exist(fullfile(dirSPM,'mask.img'))
+        GroupMaskName = fullfile(dirSPM,'mask.img');
+        imgtype=1;
+    else
+        GroupMaskName = fullfile(dirSPM,'mask.nii');
+    end
     ScaleFactors1 = art_percentscale(char(F{1}),GroupMaskName);
     ScaleFactors2 = art_percentscale(char(F{2}),GroupMaskName);
     bmeanavg = 0.5*(ScaleFactors1(3) + ScaleFactors2(3));
@@ -174,7 +185,8 @@ if (nargin==0)  % For calling in line with arguments
         % load single subject resMS image names
         for(i=1:nFsize)
             [Path, ConImg] = fileparts(F{i});
-            subjResMS{i} = spm_vol([Path '/ResMS.img']);
+            if (imgtype==1) subjResMS{i} = spm_vol([Path '/ResMS.img']);
+            else subjResMS{i} = spm_vol([Path '/ResMS.nii'])
         end
 
         % get image dimensions
@@ -318,7 +330,8 @@ if (nargin==0)  % For calling in line with arguments
             %load single subject ResMS images
             for(i=1:nFsize)
                 [Path, ConImg] = fileparts(F{i});
-                img1 = spm_vol([Path '/ResMS.img']);
+                if (imgtype==1) img1 = spm_vol([Path '/ResMS.img']);
+                else img1 = spm_vol([Path '/ResMS.nii'])
                 subjResMS{i} = spm_read_vols(img1);
             end
         end

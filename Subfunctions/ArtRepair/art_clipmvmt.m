@@ -18,7 +18,8 @@ function art_clipmvmt
 %  will be reasonably OK for 1/4 to 1/2 a voxel. Motion excursions much larger
 %  than that won't fit the motion regression model. We assume as a default
 %  that voxel size is 4 mm, and set the motion threshold at 3 mm.
-%  Then motion regressors should work pretty well on the repaired data.
+%  Then motion regressors should work pretty well on the remaining
+%  unrepaired data.
 % -----------------------------
 % Paul Mazaika, July. 2007  (v2.2 for spm2 and spm5)
 

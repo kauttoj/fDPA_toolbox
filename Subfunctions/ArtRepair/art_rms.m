@@ -20,16 +20,17 @@ function varstats = art_rms(Images,MaskImage);
 %       Mean of all images over mask
 %
 % Runs through all the images sequentially like a pipeline.
-%  Compatible with SPM5, SPM8 and SPM2.
+%  Compatible with SPM5, SPM8 and SPM2 and SPM12.
 %  Compatible with AnalyzeFormat and Nifti images.
 %  v.2  May 2009  Paul Mazaika
+%  v.3  supports SPM12 Dec2014 pkm.
 
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end;
-spm_defaults;
 startdir = pwd;
   
 if nargin == 0

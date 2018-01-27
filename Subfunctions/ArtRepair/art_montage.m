@@ -40,6 +40,7 @@ if (length(size128)==2)
 else 
    hires = 0;
 end
+
 if hires == 0
    NX = min(NX,80);   % Slices are clipped for images larger than 80x100x80.
    NY = min(NY,100);  %   Bug: Would be nicer to clip in the middle.
@@ -50,6 +51,8 @@ end
 
 % Layout an image array for regular volume
 if hires == 0
+
+    %{
     if CloseUp == 1  % For the 20-25 slice montage case
         % Three cases for slice sizes of the large image (79,95,69)
         %   Coronal   25 slices of size 79x70.  Montage is  5x5, size 790x700. 
@@ -65,25 +68,60 @@ if hires == 0
         layout = zeros(2*NROWS*jlim+6*gap,2*NCOLS*klim+6*gap);  % for the montage
         temp = zeros(jlim,klim);  % for a single slice
     else %  CloseUp = 0   %  For viewing all the slices
+    %}
+      
+        % Steps:
+        % Set up dynamic montage depending on number of slices.
+        % Find NROWS number as square root of slice number and round the
+        % number to highest integer.
+        % Find NCOLS same as NROWS but round to lowest integer.
+        % Add 1 if not enough NCOLS for all slices
+        % IMPORTANT: NCOLS are really rows and NROWS are columns because
+        % layout is transposed at the end.
+        if plane == 1  % axial/transverse
+            planeslices = NZ;
+            NROWS = ceil(sqrt(planeslices));
+            NCOLS = floor(sqrt(planeslices));
+            if NROWS*NCOLS < planeslices NCOLS = NCOLS+1; end
+            jlim = NX;  klim = NY; LastSlice = NZ;
+        elseif  plane == 2  %  sagittal
+            planeslices = NX;
+            NROWS = ceil(sqrt(planeslices));
+            NCOLS = floor(sqrt(planeslices));
+            if NROWS*NCOLS < planeslices NCOLS = NCOLS+1; end
+            jlim = NY; klim = NZ; LastSlice = NX;
+        else   %  plane == 3  % coronal
+            planeslices = NY;
+            NROWS = ceil(sqrt(planeslices));
+            NCOLS = floor(sqrt(planeslices));
+            if NROWS*NCOLS < planeslices NCOLS = NCOLS+1; end
+            jlim = NX;  klim = NZ;  LastSlice = NY;
+        end
+         
+        %{
+        % these lines not needed as we use dynamic montage above
         % Three cases for large image (79,95,69)
         %   Coronal   95(NY) slices of size 79x70.  Montage is 10x10, size 790x700. 
         %   Sagittal  79(NX) slices of size 95x70.  Montage is  8x10, size 760x700.
         %   Axial     69(NZ) slices of size 95x79.  Montage is  7x10, size 665x790
-        if plane == 1  % axial/transverse
-            jlim = NX;  klim = NY;  NROWS = 10;  NCOLS = 7;  LastSlice = NZ;  % was 7,10
-        elseif  plane == 2  %  sagittal
-            jlim = NY;  klim = NZ;  NROWS = 8;  NCOLS = 10;  LastSlice = NX;
-        else   %  plane == 3  % coronal
-            jlim = NX;  klim = NZ;  NROWS = 10; NCOLS = 10;  LastSlice = NY;
-        end
+        %if plane == 1  % axial/transverse
+        %    jlim = NX;  klim = NY;  NROWS = 6;  NCOLS = 5;  LastSlice = NZ;  % was 10,7
+        %elseif  plane == 2  %  sagittal
+        %    jlim = NY;  klim = NZ;  NROWS = 8;  NCOLS = 10;  LastSlice = NX;
+        %else   %  plane == 3  % coronal
+        %    jlim = NX;  klim = NZ;  NROWS = 10; NCOLS = 10;  LastSlice = NY;
+        %end
+        %}
+        
         layout = zeros(NROWS*jlim,NCOLS*klim);  
         temp = zeros(jlim,klim);
         FS = 1;
-    end
+    %{ end %}
 end
 
 % Layout an image array for high resolution case
 if hires == 1
+    %{
     if CloseUp == 1  % For the 20-25 slice montage case
         % Nominal high res volume is 128x128x25
         %  Get 3x3 images, or 3x15 at CloseUp view, 
@@ -109,6 +147,8 @@ if hires == 1
         layout = zeros(2*NROWS*jlim+6*gap,2*NCOLS*klim+6*gap);  % for the montage
         temp = zeros(jlim,klim);  % for a single slice
     else %  CloseUp = 0   %  For viewing all the slices
+    %}
+    
         % Nominal high res volume is 128x128x25, not necessarily in that
         % order. Set up array either 6x6, or 6x25. 
         %     ( Note 6x25 includes all 128 slices)
@@ -134,8 +174,11 @@ if hires == 1
         layout = zeros(NROWS*jlim,NCOLS*klim);  
         temp = zeros(jlim,klim);
         FS = 1;
-    end
+    %{ end %}
 end
+
+%killslice = 20; %dorian 
+
 
 % Map the images to the pixels
 if CloseUp == 0    % All slices
@@ -146,6 +189,7 @@ if CloseUp == 0    % All slices
                 if (plane == 2) temp(:,:) = Y(NX-i+1,1:jlim,1:klim); end
                 if (plane == 3) temp(:,:) = Y(1:jlim,NY-i+1,1:klim); end
                 if (plane == 1) temp(:,:) = Y(1:jlim,1:klim,NZ-i+1); end
+%                if i == killslice temp(:,:) = 0; end    % temporary code to test slices dorian
                 ix = gap + (i - fsn )*(jlim+gap);   % depend on (i-fsn)
                 iy = gap + (icolumn -1)*(klim+gap);    % depend on icolumn
                 for j = 1:jlim
@@ -158,6 +202,7 @@ if CloseUp == 0    % All slices
     end
 end
 
+%{
 if CloseUp == 1  %  CloseUp version
 	for icolumn = 1:NCOLS
         fsn = FS + NROWS*(icolumn-1);  % first slice to display
@@ -180,6 +225,8 @@ if CloseUp == 1  %  CloseUp version
 		end
     end
 end
+%}
+
 
 % Arrange the image to get these orientations:
 %    Axial - eyes up in a slice, slices with eyes in upper images
@@ -197,11 +244,15 @@ layout = fliplr(layout);
 locate(1) = plane;
 locate(2) = NCOLS; %  nxrect, number slices in i-direction
 locate(3) = NROWS; %  nyrect, number slices in j-direction
-locate(4) = klim;  %  xrect, slice size in i-direction
+locate(4) = klim;  %  slice size in i-direction
+locate(5) = jlim;  %  slice size in j-direction
+
+%{
 if (CloseUp == 1) locate(4) = 2*locate(4); end
 locate(5) = jlim;  %  yrect, slice size in j-direction
 if (CloseUp == 1 ) locate(5) = 2*locate(5); end
 locate(6) = LastSlice;   %
+%}
 
 % NOTES: Procedure to return an (X,Y,Z) voxel from a pixel location.
 % For the calculation in this function:

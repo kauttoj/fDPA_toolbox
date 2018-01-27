@@ -12,14 +12,17 @@ function art_motionadjust(Images, Mgammas, Regressors)
 % NOTES
 %  Use art_movie to compare the input and adjusted images.
 %  Use art_rms to find RMS voxel variations over time series.
-%  Compatible with SPM5 and SPM2
+%  Compatible with SPM5 and SPM2 and SPM12
 % Paul Mazaika, May 2007
+% supports SPM12, Dec2014.
 
-
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+    
 % PARAMETERS
-spm_defaults;
-
-
 P = Images;  % spm_vol(Images);
 A = spm_vol(Mgammas);
 R = Regressors;        % may be an alternate way.

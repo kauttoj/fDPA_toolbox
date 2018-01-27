@@ -1,7 +1,9 @@
 function art_motionregress(ReslicedDir,ReslicedImages,RealignDir,RealignImages)
 %  function art_motionregress
 %  >> art_motionregress  for use by GUI
-%  See below for batch.
+%   WARNING! This function will crash or run very slowly on normalized
+%   images. Image volumes are much smaller before normalization.
+%  See below for batch use.
 %
 % FUNCTIONS
 %   Remove residual interpolation errors after the realign and reslice
@@ -10,8 +12,6 @@ function art_motionregress(ReslicedDir,ReslicedImages,RealignDir,RealignImages)
 %   More fractional variation is removed on edge voxels with high variation,
 %   while little variation is removed on non-edge voxels. The function
 %   should be applied after realign and reslice, but before normalization.
-%   WARNING! This function will crash or run very slow on normalized
-%   images.
 %
 % INPUT by GUI
 %  Select realigned and resliced images, eg. 'rI*'.
@@ -42,6 +42,7 @@ function art_motionregress(ReslicedDir,ReslicedImages,RealignDir,RealignImages)
 %  memory on normalized images which are usually much larger.
 %  
 % Paul Mazaika,  May 2009
+% Supports SPM12. Bug fix for .nii by M. Schmitgen. Dec2014.
 
 %  ALGORITHM
 %  Algorithm finds the x,y,z equivalent translational motion on each voxel,
@@ -68,10 +69,12 @@ function art_motionregress(ReslicedDir,ReslicedImages,RealignDir,RealignImages)
 %  storing the equivalent of 63 3D-images. This works only for
 %  the smaller fMRI images before normalization.
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end;
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 % DATA, REALIGNMENT, AND REPAIR LOCATIONS
 if nargin == 0
@@ -406,7 +409,11 @@ mgamma06 = max(mgamma06,mingamma);
 % Estimate motion adjusted images
 disp('Write images after motion adjustment');
 if strcmp(spm_ver,'spm5')
-    mgams = spm_select('FPList',imagedir, '^mgamma.*\.img$');  
+    % file extension may be img or nii, this logic should do both.
+    realname = '^mgamma.*\.(img$|nii$)';
+    mgams = spm_select('FPList',imagedir, realname);
+    %mgams = spm_select('FPList',imagedir, '^mgamma.*\.img$'); 
+    %mgams = spm_select('FPList',imagedir, '^mgamma.*\.nii$');
 else  %  spm2
     mgams = spm_get('files',imagedir, 'mgamma*img');
 end

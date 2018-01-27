@@ -17,12 +17,14 @@ function outseries = art_plottimeseries(Qimages,voxel)
 %
 %  Called as a diagnostic by art_despike function
 %  Paul Mazaika - Jun 2009 adds SPM8
+%  supports SPM12, Dec2014 pkm.
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end;
-spm_defaults;
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 if nargin > 0
     xyz = voxel;

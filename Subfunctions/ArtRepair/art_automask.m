@@ -1,5 +1,5 @@
 function  Y = art_automask(Image,Threshold,WriteVol);
-% Y = art_automask( Image, Threshold, WriteVol )      (v2.2)
+% Y = art_automask( Image, Threshold, WriteVol )      (v2.3)
 % art_automask;                                 
 %
 %    Calculates a pretty good mask image from an input full-head Image
@@ -37,7 +37,7 @@ function  Y = art_automask(Image,Threshold,WriteVol);
 % Paul Mazaika  April 2004.
 % V.2  adapts to different mean image levels.  Paul Mazaika Aug. 2006.
 % V2.1 write maskvalue=1. get/write changes for SPM5. (2/07) 
-% v2.2 better GUI for user to set a mask threshold
+% v2.3 support SPM12 (12/14)
 
 
 % Adaptive Threshold Logic depends on estimated error rate outside the head.
@@ -46,9 +46,12 @@ function  Y = art_automask(Image,Threshold,WriteVol);
 % the slice is smaller than parameter FMR.
 FMR = 0.015;   % False Mask Percentage. 
 
-spmv = spm('Ver');spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 if nargin == 0
     if strcmp(spm_ver,'spm5')
@@ -83,7 +86,7 @@ end
 % Adaptive Mask Threshold
 if ( Threshold == -1 )   % Find a threshold that discards three outer faces.
     % Use gray matter density as lower limit- count is 400.
-    Tlow = fix(0.2*Yr);  Thigh = fix(0.4*Yr); Tskip = max(fix(Tlow/20),1);
+    Tlow = fix(0.2*Yr);  Thigh = fix(0.4*Yr); Tskip = max(fix(Tlow/20),1); % upper thresh 0.5 was 0.4 before
     for Tbar = Tlow:Tskip:Thigh   % 400:20:800
         temp(:,:,:) = (Y(:,:,:) > Tbar);
 	% Count the number of mask points in the far faces of the volume

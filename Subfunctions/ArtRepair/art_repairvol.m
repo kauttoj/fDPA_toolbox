@@ -41,15 +41,11 @@ function art_repairvol(varargin)
 % ----------------------
 
 %keyboard;
-
-%fprintf('nargin: %i \n', nargin);
-
 handles = guihandles;
 rng = str2num(get(handles.rangenum, 'String'));
 out_idx = round(str2num(get(handles.indexedit, 'String')));
 outdw_idx = round(str2num(get(handles.deweightlist, 'String')));
-
-if nargin == 0    
+if nargin == 0
     % Callbacks don't like argument list, so pass P through getappdata.
     P = getappdata(gcbo, 'data');
     GoRepair = 0;
@@ -74,7 +70,7 @@ cd(fileparts(P(1,:)));
 save art_repaired.txt out_idx -ascii
 save art_deweighted.txt outdw_idx -ascii
 
-%intfig = spm('CreateIntWin', 'on');
+intfig = spm('CreateIntWin', 'on');
 if GoRepair == 0
     inter_method = spm_input('Which repair method?', 1, 'b', 'Interp|Despike|Mean', [3;2;1], 1);
     spm_input('!DeleteInputObj');
@@ -225,7 +221,7 @@ for i = 1:length(out_idx)
     end
 end
 fprintf('\nDone!. Output files have prefix "v".\n');
-%close(intfig);
+close(intfig);
 
 cd(inputdir);
 

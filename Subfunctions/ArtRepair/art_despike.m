@@ -52,18 +52,18 @@ function zout = art_despike(Images,FiltType,Despike)
 % filter applies to the data and design matrix, and is better for blocks. 
 % Runs through all the images sequentially like a pipeline.
 %
-%  Compatible with SPM5, SPM8 and SPM2.
+%  Compatible with SPM5, SPM8, SPM12 and SPM2.
 %  Compatible with AnalyzeFormat and Nifti images.
 %  v.1  July 2008  Paul Mazaika
 %  v.2  May 2009 pkm  despike output works off centered mean.
+%  v.3  supports SPM12. Bug fix for .nii by M. Schmitgen. Dec14
 
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end;
-spm_defaults;
-  
 
 if nargin == 0
     CLIP = 1;   % 1 to despike,  0 to not despike which is a bit faster.
@@ -251,7 +251,7 @@ demovoxel = round( size(Vmean)/3 );
 xin = art_plottimeseries(Pimages  ,demovoxel);
 SubjectDir = fileparts(Pimages(1,:));   
 if strcmp(spm_ver,'spm5') 
-    realname = [ '^d' '.*\.img$'  ];
+    realname = [ '^d' '.*\.(img$|nii$)'  ];
 	Qimages = spm_select('FPList',[SubjectDir ], realname);
 else   % spm2
     realname = ['d' '*.img'];

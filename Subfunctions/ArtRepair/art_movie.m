@@ -1,5 +1,5 @@
 function art_movie(Action)
-% FORMAT art_movie    (v. 3)
+% FORMAT art_movie    (v. 4.2)
 %   
 % FUNCTIONS:  Displays bulk data for quick visual review by a user. Typical
 %   time to process and display all the data in 100 scans of size (64,64,30)
@@ -42,12 +42,13 @@ function art_movie(Action)
 %          Contrast mode helps to see artifacts in raw images.
 %       High Contrast is the same as Contrast, but amplified 25x more
 %          sensitive than raw for a close look at voxel noise.
-%   Select Reference image. User may choose any image, or allow the
-%       the program default to the second image in the range.
+%   Select Reference image. User may choose any image, or the mean images, 
+%       or the second image in the range. The dynamic image option compares
+%       every image to the immediately preceding image.
 %       Typical user choice might be a mean image or a rest state.
 %   Select Movie & Time History,  or interactive Slider.
 %       If a movie, select a movie frame rate. Three loops are played.
-%          1 or 2 fps is slow enough to visually spot artifacts.
+%          2 or 4 fps is slow enough to visually spot artifacts.
 %          At the end of the movie, a time history of the average intensity 
 %          and position of each scan is displayed.
 %       The slider shows individual frames and allows user to zoom in and out.
@@ -58,6 +59,8 @@ function art_movie(Action)
 %   A movie of a montage of slices, for all the scans of data, 
 %          followed by a time history plot, OR
 %   An interactive slider display with all frames of the montage movie.
+%       Slices outlined in red mean unusual noise was detected on the
+%       slice.
 %   If Export is selected, contrast images will be written in AnalyzeFormat
 %       with the letter "c" prepended to the filename.
 %
@@ -68,11 +71,17 @@ function art_movie(Action)
 %    The reference scan will show as solid black in contrast viewing.
 %
 % See also:  spm_movie,  AnalyzeMovie
-%
+
 % Paul Mazaika  Feb 2005,. v2.2 minor tweaks, July 2007
 % v2.3  fix to image drawing by Volkmar Glauche, June 2008
-% v3    scale mean image to 1000 (instead of by peak voxel) Mar 2009 pkm
+% v3    scale mean image to 1000 (instead of using peak voxel) Mar 2009 pkm
 %       multiple SPM versions
+% v4.1  changes by Dorian Pustina, October 2012
+%       Increased memory limit to half of SPM memory limit
+%       Added option to select mean image, or dynamic image, as reference.
+%       Scales display to fill window using all slices. Removed the CloseUp option.
+%       Detects and displays slices with unusual noise.
+% v4.2  supports SPM12, Dec2014 pkm.  Parse slice default changed to No.
 
 
 % SIZE LIMIT - This parameter can be adjusted for a particular computer.
@@ -80,12 +89,29 @@ function art_movie(Action)
 %   400 volumes of (64x64x30) is 50 MB stored as type uint8.
 %   An experiment session may contain 300-600 volumes.
 %   The number of volumes affects the loading speed.
-MAXSIZE = 510340;   %  About 50 MB is allowed into program storage.
+%   Set maximum memory usage as half of what SPM can use
 
-spm_defaults;
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
+% if strcmp(spm('Ver'),'SPM8') == 1
+%     spm('Defaults', 'fmri');
+%     MAXSIZE = spm_get_defaults('stats.maxmem')/2;
+% else
+%     spm_defaults;
+%     global defaults;
+%     MAXSIZE = defaults.stats.maxmem/2;
+% end
+
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5'))
+    spm_defaults;
+    global defaults;
+    MAXSIZE = defaults.stats.maxmem/2;
+else
+    spm('Defaults','fmri'); 
+    MAXSIZE = spm_get_defaults('stats.maxmem')/2;
+end
+
 
 
 % GET THE USER'S INPUTS
@@ -98,10 +124,10 @@ if (nargin==0)  % For calling in line with arguments
     %F      = spm_select(Inf,'image','select images');
     nFsize = size(F,1);
     % Get the image dimensions. Set bounds on the number of scans allowed.
-    f = deblank(F(1,:));
-    V = spm_vol(f);
-    Y = spm_read_vols(V);
-    sdims = size(Y);
+    f = deblank(F(1,:));    % take the first filename
+    V = spm_vol(f);         % get first image header
+    Y = spm_read_vols(V);   % read first image data
+    sdims = size(Y);        % count first image dimensions (also in the header)
     [ sy, si ] = sort(sdims);  % si(1) is the minimum dimension
     sor = 1;   % default preference for axial.
     if ( sy(2)==sy(3) & (sy(2) == 64 | sy(2) == 128 ))
@@ -116,30 +142,29 @@ if (nargin==0)  % For calling in line with arguments
     if ( Orient == 1 ) slnum = sdims(3); end
     if ( Orient == 2 ) slnum = sdims(1); end
     if ( Orient == 3 ) slnum = sdims(2); end
-	mdims = prod(sdims);
-    mxscans = round(MAXSIZE/mdims) * 100;
+    
+	mdims = prod(sdims);                    % calculate memory need for an image
+    mxscans = round(MAXSIZE/mdims);         % removed '* 100' because MEMSIZE is now the exact number of bytes;   
     MAXSCAN = mxscans;
+
     % Get the images and define the viewing montage.
-    scansel = spm_input([num2str(nFsize) ' vols. Select range, e.g. 10:99'],1);  %array of integers
-    if slnum > 9   % 9 is for the HiResolution case.
-        CloseUp = spm_input('All Slices or ~20 close-up slices',1, ' All | Close-up', [ 0 1 ] );
-    else  %  No need to ask if there are fewer than 25 slices total.
-        CloseUp = 1;
-    end
-    if CloseUp == 1
-         centerslice = round(slnum/2);
-         slicesel = spm_input([num2str(slnum) ' slices. Pick montage center' ],1,'n',num2str(centerslice));   % array of integers
-         slicesel = max(1,slicesel - 12);  %  slicesel is now the first slice.
-    else
-         slicesel = 1;    % Start at first slice for All slice case
-    end
+    defaultscansel = ['1:' num2str(nFsize)];
+    scansel = spm_input([num2str(nFsize) ' vols. Select range, e.g. 10:99'],1,'e',defaultscansel,NaN);  %array of integers
+    
+    
+    % variables outdated but still needed for other functions
+    CloseUp = 0;    % option CloseUp = 1 removed
+    slicesel = 1;   % variable used for CloseUp = 1, but still required
+
+    
+    
     typesel = spm_input('Select Data Magnification',1,'m', ...
         ' Raw Image Data | Contrast (best for finding artifacts in raw images} | High contrast (for viewing preprocessed images)',...
         [ 1 2 3 ], 2);
     refsel = 1;  % For non-contrast image, reference choice doesn't matter.
     if typesel > 1   % For contrast modes, ask for a reference image
         refsel = spm_input('Choose a Reference Image',1,'m', ...
-            ' Automatic (defaults to the second image in the range) | User-Specified (e.g. a rest state or mean image)', [ 1 2 ], 1);
+            'Mean Image (calculate mean and use as reference) | Dynamic (last volume becomes reference for next) | Static-default (from the middle of the list) | Static-manual (user-specified)', [4 3 1 2], 1);
         if refsel == 2
              if strcmp(spm_ver,'spm5')  
                  Frefer      = spm_select(1,'image','select one reference image');
@@ -150,6 +175,8 @@ if (nargin==0)  % For calling in line with arguments
             fref = deblank(Frefer);
         end
     end
+    
+    
     smode=spm_input('Select viewing mode',1,'m', ...
         ' Slider | Movie (montage movie in Matlab) | Export (writes AnalyzeFormat images of contrasts ) | Slider and Export', [ 1 0 2 3] );
     if ( smode == 1 | smode == 3 )  % slider
@@ -159,7 +186,7 @@ if (nargin==0)  % For calling in line with arguments
     end
     if  smode == 0   %  smode == 0, movie
         frate = spm_input('Frames/second ? (e.g. 4)',1);
-        nloops = 3;   %  spm_input('# loops',2);
+        nloops = spm_input('Number of movie loops',1);
         mode = 0;
         export = 0;
     end
@@ -177,6 +204,7 @@ if (nargin==0)  % For calling in line with arguments
      nFsize = size(F,1);
      Action = 'Load'; nnnn = 6;
 end
+
 spm_input('!DeleteInputObj');
 
 switch lower(Action), case('load')
@@ -193,13 +221,58 @@ lastscanF = nFsize;       % Size limit by end of available files.
 lastscan = min( [ lastscanU lastscanM lastscanF ] );
 Slimit = lastscan - firstscan + 1;   % Number of scans that will be processed.
 
-% Display the Reference Image
+%% warn the user if not all selected images are displayed
+if Slimit < numel(scansel)
+   h =warndlg(sprintf(['Impossible to display all selected images.\nNot enough memory or missing files in drive.'...
+       '\n\nSelection:    ' num2str(numel(scansel)) ' images'...
+       '\nLimited to first:    ' num2str(Slimit) ' images']), 'Internal limit reached.');
+   waitfor(h);  % don't proceed until the user clicks OK, otherwise the warning will be covered with other windows
+end
+
+%% Determine name of reference image
 % If user selected the reference image, then fref is known and refsel=2.
-% If using automatic default for reference, choose the second image.
+% If user selected dynamic reference (refsel=1), then fref is the image in
+% the middle of the list.
 if refsel == 1
-    nbase = round(firstscan + 1);
+    nbase = ceil(Slimit/2);                                                                                 % reference scan from the middle of timeseries
     fref = deblank(F(nbase,:));
-end 
+    [refdir refname refext] = fileparts(fref);
+    disp(['Reference image: ''' refname '.img'' (middle of ' num2str(Slimit) ' images in the list)']);      % display the selected reference in Matlab prompt
+    clear refdir refname refext;
+elseif refsel == 3              % dynamic reference case
+                                % temporary load first image as reference
+                                % to start art_montage layout
+    nbase = 1;
+    fref = deblank(F(nbase,:));
+elseif refsel == 4                     % mean image calculation
+    h = waitbar(0,['Calculating Mean Volume'], 'Name','Please wait...');
+    for iscan = firstscan:lastscan
+        total = (lastscan-firstscan+1); position = (iscan - firstscan + 1);
+        proportion = position/total;
+        waitbar(proportion,h);
+
+        nscan = iscan - firstscan + 1;
+        f =deblank(F(iscan,:));
+        V = spm_vol(f);
+        Y = spm_read_vols(V);
+        if exist('Ymean') ~= 1  Ymean = zeros(V.dim); end
+        Ymean = Ymean+Y;
+    end
+    delete(h);
+    Ymean = Ymean/(lastscan-firstscan+1);   % divite YMean to get the mean
+    [dirname, xname, xext ] = fileparts(V.fname);
+    fref = fullfile(dirname,['temporary_mean' xext]);
+    V.fname = fref;
+    spm_write_vol(V,Ymean);
+    clear thisimg nscan f V Y Ymean dirname xname xext;
+end
+
+
+%% load  reference image previously define
+% will be middle for static default or
+% will be mean image for mean calculated choice or
+% will be user selected filename or
+% will be first image for dynamic reference just to setup layout
 V = spm_vol(fref);
 gap = 0;   %  No space allowed between image slices in the montage.
 % Read and draw the preview image.
@@ -207,7 +280,7 @@ Yref = spm_read_vols(V);   % Y is type double, size 4MB for (79,95,68);
 % Y is a 4D representation of images, 4th dimension is the scan number.
 [layout,nil] = art_montage(Yref,Orient,slicesel,CloseUp);    % Currently double
 figure(4);   % Standard Matlab window has zoom enlargement, etc.
-Yrmax = max(max(max(Yref)))
+Yrmax = max(max(max(Yref)));
 Yrmin = min(min(min(Yref)));
 
 % SCALE IMAGE so that image mean is 1000. Report scale factors
@@ -228,7 +301,11 @@ imagesc(layout,[ Yrmin Yrmax ]); colormap(gray)   % puts one image up to start.
 drawnow;
 disp('Reference image has been read and displayed.')
 
-% Set up the arrays. Size of the image was determined in function art_montage.
+
+
+
+
+%% Set up the arrays. Size of the image was determined in function art_montage.
 [ xs, ys ] = size(layout);
     % In movie mode, data is stored in movie frames, not in the imageblock array.
         if (mode == 0)  Slimit = 1; end
@@ -239,7 +316,8 @@ disp('Reference image has been read and displayed.')
     layout8 = uint8(zeros(xs,ys)); 
     history = zeros(lastscan,4);  %  Track some global properties 
     
-% Set the colormap 
+    
+%% Set the colormap 
 % For a raw image, Range 0-2040 is mapped to range of 64.
 % For contrast image, amplitude scale will be 5x larger. -160,+160 -> 0,64.   
 cmap = colormap(gray);   % Size cmap is 64, so must map imageblock values to 0-63.
@@ -251,12 +329,39 @@ if typesel == 3
 end
 
 
+
 % LOAD A SINGLE VOLUME AT A TIME AND CONVERT TO UINT8 FOR STORAGE
 % Reads a scan at a time, and sets up a uint8 image, or a movie frame, for it.
 disp('Loading data - this may take a few minutes for a lot of scans')
 % Scale the reference image to mean intensity of 1000.
    layout = layout*1000/meanimage;
+   h = waitbar(0,['Reading images'], 'Name','Please wait');
 for iscan = firstscan:lastscan
+    total = (lastscan-firstscan+1); position = (iscan-firstscan+1);
+    proportion = position/total;
+    waitbar(proportion,h,['Reading image ',num2str(position),' of ',num2str(total)]);
+    
+    %% for dynamic reference, use the volume before as reference
+    % if this is first volume, reference will be itself
+    % Note: if first scan to display is 32, reference will be 31
+    % despite not being displayed
+    if refsel == 3
+        ref.nscan = max(1,iscan - firstscan);       % biggest of (iscan - firstscan) or number 1
+        ref.f = deblank(F(ref.nscan,:));    
+        ref.V = spm_vol(ref.f);
+        ref.Y = spm_read_vols(ref.V);
+        Yref = ref.Y;
+        [layout,nil] = art_montage(ref.Y,Orient,slicesel,CloseUp);
+        Yrmax = max(max(max(ref.Y)));
+        Yrmin = min(min(min(ref.Y)));
+        ref.Automask = art_automask(ref.V.fname,-1,0);
+        maskcount = sum(sum(sum(ref.Automask)));  %  Number of voxels in mask.
+        sumref = sum(sum(sum(ref.Automask.*ref.Y)));
+        meanimage = sumref/maskcount;
+        layout = layout*1000/meanimage;
+    end
+    
+    %% process current image now
     nscan = iscan - firstscan + 1;
     f =deblank(F(iscan,:));
     V = spm_vol(f);
@@ -265,6 +370,11 @@ for iscan = firstscan:lastscan
         Y = Y*1000/meanimage;
     history(iscan,1:4) = art_centroid(Y);  %  Collect time histories
     [temp1,nil] = art_montage(Y,Orient,slicesel,CloseUp);  % temp is double 
+    
+    
+
+    
+    
     if mode == 1   %  Slider mode-  load imageblock
         if typesel == 1   % For raw data, we'll divide by 64 for the movie, anyway.
             temp = uint16(temp1);   % Prepares non-integer data for bitshift operation.
@@ -297,6 +407,7 @@ for iscan = firstscan:lastscan
         layout8 = min(63,imageblock);  %  Guarantees it fits into movie uint8 format.
         M(nscan) = im2frame(layout8,cmap);
     end
+    
     if export == 1   % Write out contrast volumes in AnalyzeFormat
         Y = Y - Yref + 512;
         Y = max(1,Y);
@@ -310,9 +421,34 @@ for iscan = firstscan:lastscan
         spm_write_vol(v,Y); 
     end
 end
+delete(h)       % DELETE the waitbar; don't try to CLOSE it.
+
+%% find out bad slices
+parsebadslice = spm_input('Parse & Display bad slices?',1,'m',' Yes | No', [ 1 0 ], 0);
+if parsebadslice == 1
+    [badslices badorient] = art_slice_check(F);
+    
+    % check orientation correspond
+    if (Orient == 1 & badorient ~= 3) parsebadslice = 0;
+    elseif  (Orient == 2 & badorient ~= 1) parsebadslice = 0;
+    elseif (Orient == 3 & badorient ~= 2) parsebadslice = 0;
+    end
+    
+    if parsebadslice == 0
+        textorient{1} = 'Axial';
+        textorient{2} = 'Sagittal';
+        textorient{3} = 'Coronal';
+        badtextorient{1} = 'Sagittal';
+        badtextorient{2} = 'Coronal';
+        badtextorient{3} = 'Axial';
+        warning('Bad slices are displayed ONLY in the orientation data was collected.');
+        warning(['You selected ' textorient{Orient} ' orintation but data was collected in ' badtextorient{badorient}]);
+    end
+end
 
 
-% DISPLAY IN MOVIE OR SLIDER FORMAT
+
+%% DISPLAY IN MOVIE OR SLIDER FORMAT
 %----------------------------------------------------------
 ha =figure('Position',[100 100 830 830]);  % Create the movie or slider figure.
 figure(ha);
@@ -370,9 +506,14 @@ elseif mode==1   %  Slider Mode
    if ~isempty(h)
       delete(h);
    end;
+   
+   if parsebadslice == 1, badslices = cell2struct(badslices, 'slices', 1);
+   else badslices = [];
+   end
+   
    figwin = ha;
    m_struct=struct('movie',imageblock,'filename',F,'first',firstscan,...
-       'typesel',typesel,'orient',Orient);
+       'typesel',typesel,'orient',Orient,'locate',nil, 'parsebadslice',parsebadslice,'badslices', badslices);
    s=uicontrol('Style','slider','Parent',figwin,...      
 		    'Position',[245 80 338 30],...
 		    'Min',min_slide,'Max',max_slide,...
@@ -399,7 +540,18 @@ elseif mode==1   %  Slider Mode
    frame=sprintf('%s',deblank(F(firstscan,:)));  % Gets the path and file name
    t=title('x','FontSize',14,'Interpreter','none','Tag','ToDelete');
    t=title(frame,'FontSize',14,'Interpreter','none','Tag','ToDelete');
+   
+   % fix filename text to adapt to window
+	un = get(t,'units');
+    set(t, 'units','normalized');
+    ext=get(t,'extent');
+    set(t, 'units',un);
+    set(t,'Fontsize',14/(ext(3)-ext(1)));
+
+
 end
+
+
 case('scroll')
 %==========================================================
 global PRINTSTR
@@ -460,6 +612,18 @@ set(t, 'units','normalized');
 ext=get(t,'extent');
 set(t, 'units',un);
 set(t,'Fontsize',14/(ext(3)-ext(1)));
+
+% outline slices with artifacts
+if m_struct.parsebadslice == 1                       % if the user wants to see bad slices
+    badslices = m_struct.badslices;
+    tempbadslices = struct2cell(badslices);
+    if any(tempbadslices{gscan})                        % if any bad slice for this volume
+        for bd = 1:length(tempbadslices{gscan})         % for each bad slice
+            [x y w h] = art_slice2pos(tempbadslices{gscan}(bd), m_struct.locate);
+            rectangle('Position',[x y w h], 'LineWidth',3, 'EdgeColor','r');
+        end
+    end
+end
 
 %======================================================================== 
 otherwise

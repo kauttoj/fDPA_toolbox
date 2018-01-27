@@ -36,12 +36,15 @@ function ScaleFactors = art_percentscale(ImageFullName,MaskFullName);
 %  the last beta image within the specified mask.
 %
 % Paul Mazaika, Feb 2009.
+% supports SPM12, Dec2014. pkm
+% supports .nii format, Aug2015 pkm.
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
-spm_defaults;
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 if nargin > 0
     Rimages = ImageFullName;  
@@ -56,7 +59,7 @@ elseif nargin == 0   %  GUI interface if no arguments
     [ResultsFolder, temp ] = fileparts(Rimages(1,:));
     [temp, ResultsName ] = fileparts(ResultsFolder);
     % We ask for the mask, but might prefer to find mask automatically
-      aMaskimages = spm_select('List',ResultsFolder,'^mask.*\.img'); % for SPM5
+      aMaskimages = spm_select('List',ResultsFolder,'^mask.*\.img$'); % for SPM5
       imgmask = fullfile(ResultsFolder,aMaskimages);
 %     if strcmp(spm_ver,'spm5')
 %         %imgmask  = spm_select(Inf,'mask.img','select Mask image'); 
@@ -114,7 +117,7 @@ end
 % Find the ResMS and last beta image in Results folder with the Images
    %R = spm_vol(Rimages);
    %nimages = size(R,1);
-   betaimages = spm_select('List',ResultsFolder,'^beta.*\.img'); % for SPM5
+   betaimages = spm_select('List',ResultsFolder,'^beta.*\.img$'); % for SPM5
    lastbeta = size(betaimages,1);
    Normimage = betaimages(lastbeta,:);
    words = [' Normalizing by ', Normimage]; disp(words);

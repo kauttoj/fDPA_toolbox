@@ -53,6 +53,7 @@ function [GQout,GQmean, Resout] = art_groupsummary(ImageFullName,MaskFullName,Ou
 %       when voxel size is < 2.5 mm.).
 %
 % Paul Mazaika, Jan. 2009. adapted from art_summary.
+% supports SPM12, Dec2014.
 
 % For calling from another function (not currently used)
 %    [GQout,GQmean,Resout]=art_groupsummary(ImageFullName, MaskFullName, OutputFolder,Figname,Fignum,AutoParams);
@@ -66,12 +67,12 @@ function [GQout,GQmean, Resout] = art_groupsummary(ImageFullName,MaskFullName,Ou
 %     peak_value:    peak value of the design regressor
 %     contrast_value:  sum of positive parts of contrast definition.
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-%if (spmv == 'SPM5' | spmv == 'SPM8b' | spmv == 'SPM8') spm_ver = 'spm5'; end
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
-spm_defaults;
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 if nargin > 0
     Rimages = ImageFullName; 

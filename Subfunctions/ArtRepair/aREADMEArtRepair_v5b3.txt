@@ -1,16 +1,42 @@
-ART_REPAIR v4
-
-This version is an update for ArtRepair5 (for SPM5) and ArtRepair2 (for SPM2).
-It is named ArtRepair in the SPM toolbox window.
-   June 10, 2009.  - pkm
+ART_REPAIR v5b3  (Sept. 2015)
+    Supports SPM12, but this beta version has not been thoroughly tested with it.
 
 COMPATIBILITIES
-   Tested for SPM5, and backward compatible with SPM2.
-   Compatible with 3D nifti files, or AnalyzeFormat.
-   NOT compatible with 4D nifti files.
-   NOT tested for SPM8b or SPM8, although some parts may work.
+    SPM12, SPM8, SPM5, and backwards compatible to SPM2
+    Compatible with 3D nifti files, or AnalyzeFormat.
+    NOT compatible with 4D nifti files.
+    
+New features of v5b  (Mar 2015, Aug 2015)
+    Supports SPM12
+    art_groupoutlier will run in Matlab without Statistics toolbox
+    art_motionstats,  summarizes motion and rapid motion characteristics for a subject
+    art_motionstatsBatch,  same as above for a cohort of subjects
+    v5b:  Fixed bugs in art_despike and art_groupcheck (from Mike Schmitgen)
+    v5b1: Fixed bugs: Readme converted to .txt, Folder name changed, subfolder removed.
+    v5b1: Fixed bug for .nii compatibility in art_motionregress
+    v5b3: Fixed bugs for .nii compatibility in art_summary, art_groupcheck
+    v5b3: Fixed bugs for .nii compatibility in art_percentscale
+    
+New features of v4.1 (November 2012)
+    Upgrades to art_movie, with better display, larger capacity, more options
+    Upgrades to art_slice, to improve performance, and visually flag bad slices 
    
-CHANGES from v3.1 (May 2009)
+     Detailed changes
+     ----------------
+     art_movie  (from Dorian Pustina)
+        Can select mean image, or preceding image, as contrast reference
+        Display is automatically sized for the montage window
+        Size limit is expanded to handle many times more images
+        Fixed bugs in text sizing
+     art_slice  (from Dorian Pustina)
+        Bad slices can be displayed in the contrast movie window
+        Uses spatial interpolation from neighboring slices to repair slices,
+           if the usual temporal interpolation would use a bad slice.
+        Wait bar added to the user interface
+    
+   
+New features of v4 (June 2009)
+   It is named ArtRepair in the SPM toolbox window.
    New art_motionregress, an alternative to using motion regressors
    New art_despike,  removes spikes and slow-varying background voxelwise
    New art_rms,  calculates image of rms variations of set of images

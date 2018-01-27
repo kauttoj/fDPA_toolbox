@@ -12,7 +12,7 @@ function art_defaults
 % suspicious as non-physiological noise. Data within that range are not
 % outliers. Set the default minimum percent variation to be suspicious...
 %      Percent_thresh = 1.3; 
-% For good subjects, might be as low as 1.0.
+% For typical subjects with uniform breathing, might be as low as 1.0.
 %
 % Alternatively, deviations over 2*std are outliers, if std is not very small.
 %      z_thresh = 2;  % Currently not used for default.

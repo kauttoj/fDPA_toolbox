@@ -2138,44 +2138,6 @@ if (AutoDataProcessParameter.IsDetrend==1)
     end
 end
 
-% if (AutoDataProcessParameter.ComputeDVARS==1)
-%     
-%     try
-%         
-%         fprintf('\n------------- Computing DVARS -----------------\n\n')
-%         
-%         for SES = 1:AutoDataProcessParameter.Sessions
-%             
-%             cd([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir]);
-%             for i=1:AutoDataProcessParameter.SubjectNum
-%                 %OutputDir=[AutoDataProcessParameter.DataProcessDir,filesep,TargetDir,filesep,AutoDataProcessParameter.SubjectID{i}];
-%                 %mkdir(OutputDir);
-%                 
-%                 DirImg=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'*.img']);
-%                 if ~isCorrectOrder(DirImg)
-%                     error('Wrong order!')
-%                 end
-%                 InputImages=[];
-%                 for j=1:length(DirImg)
-%                     InputImages{j} = [AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,DirImg(j).name];
-%                 end
-%                 
-%                 dvars = compute_dvars(InputImages);
-%                 
-%                 save([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},filesep,'dvars.mat'],'dvars');
-%                 
-%                 fprintf('...95%% threshold = %f\n',prctile(dvars,95));
-%                 fprintf(['Computing DVARS for ',AutoDataProcessParameter.SubjectID{i},' OK\n']);
-%             end
-%         end
-%         
-%     catch err
-%         warning('Failed to compute DVARS: %s',err.message);
-%     end
-%     
-%     fprintf('\n');
-% end
-
 % Volume Artifact Removal 05/11 /EP
 % Uses ArtRepair toolbox (http://spnl.stanford.edu/tools/ArtRepair/Docs/ArtRepairHBM2009.html)
 if (AutoDataProcessParameter.VolumeArtifactRemoval==1)
@@ -2203,7 +2165,7 @@ if (AutoDataProcessParameter.VolumeArtifactRemoval==1)
             MvParams=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},filesep,DirImg(1).name];
             
             % Run art_global (ArtRepair)
-            art_global_ep(InputImages, MvParams, 4, 2, AutoDataProcessParameter.PercentThresh, AutoDataProcessParameter.ZThresh, AutoDataProcessParameter.MvmtThresh);
+            art_global(InputImages, MvParams, 4, 2, AutoDataProcessParameter.PercentThresh, AutoDataProcessParameter.ZThresh, AutoDataProcessParameter.MvmtThresh);
             
             DirImg=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'v*.*']);
             for j=1:length(DirImg)

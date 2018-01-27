@@ -73,13 +73,13 @@ elseif nargin==4 || nargin==5 ||nargin==6
 			theMsg =AMessage;
 		end
 		
-		rest_progress(APercent,hChild, theMsg, 'Name', ATitle);		
-        if etime(clock, Last_UpdateClock)>1
-            Last_UpdateClock =clock;
-			if rest_misc( 'ForceCheckExistFigure' , hParent)
-				rest_progress(-1,hParent);	
-			end	    			
-        end    
+% 		rest_progress(APercent,hChild, theMsg, 'Name', ATitle);		
+%         if etime(clock, Last_UpdateClock)>1
+%             Last_UpdateClock =clock;
+% 			if rest_misc( 'ForceCheckExistFigure' , hParent)
+% 				rest_progress(-1,hParent);	
+% 			end	    			
+%         end    
 	end
 	%Adjust progress window's position to make the child always stay on top of the parent
 	if rest_misc( 'ForceCheckExistFigure' , hParent) ...

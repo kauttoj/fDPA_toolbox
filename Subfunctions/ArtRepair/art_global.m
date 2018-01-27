@@ -1,5 +1,5 @@
-function art_global(Images,RealignmentFile,HeadMaskType,RepairType,PercentThresh,ZThresh,MvThresh)
-% FORMAT art_global                         (v.2.5)
+function art_global(Images,RealignmentFile,HeadMaskType, RepairType)
+% FORMAT art_global                         (v.2.6)
 %
 %     Art_global allows visual inspection of average intensity and
 % scan to scan motion of fMRI data, and offers methods to repair outliers
@@ -44,9 +44,7 @@ function art_global(Images,RealignmentFile,HeadMaskType,RepairType,PercentThresh
 % sessions. This approach differs from previous versions of this program. 
 %
 % For batch scripts, use
-% !!
-% !! FORMAT art_global(Images, RealignmentFile, HeadMaskType, RepairType)
-% !!
+% FORMAT art_global(Images, RealignmentFile, HeadMaskType, RepairType)
 %    Images  = Full path name of images to be repaired.
 %       For multiple sessions, all Images are in one array, e.g.SPM.xY.P
 %    RealignmentFile = Full path name of realignment file
@@ -59,10 +57,8 @@ function art_global(Images,RealignmentFile,HeadMaskType,RepairType,PercentThresh
 %    Hardcoded actions:
 %       Does repair, does not force repair of first scan.
 % ----------------------------------------------------------------------
-% May 2011 Modified by Eerik Puska
-%    Takes thresholds as input arguments, no GUI.
-
 % v2.5, May 2009 pkm  - adds SPM8, RepairType=0.
+% v2.6, Dec 2014 supports SPM12.
 
 % v2.4, Mar 2009 pkm
 %    Only one session allowed. Realign and repair each session separately.
@@ -86,9 +82,7 @@ function art_global(Images,RealignmentFile,HeadMaskType,RepairType,PercentThresh
 %    For SPM5, finds size of VY.dim.  ( Compatible with SPM2)
 %
 % Paul Mazaika, September 2006.
-% This version replaces v.1 by Paul Mazaika and Sue Whitfield 2005,
-%  originally derived from artdetect4.m, by Sue Whitfield,
-%  Jeff Cooper, and Max Gray in 2002.
+
 
 
 % -----------------------
@@ -96,10 +90,11 @@ function art_global(Images,RealignmentFile,HeadMaskType,RepairType,PercentThresh
 % -----------------------
 
 pfig = [];
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
 
 % ------------------------
 % Default values for outliers
@@ -110,15 +105,16 @@ if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
 % For 500 samples, expect a 3-sigma case, so values over 1.5% are
 % suspicious as non-physiological noise. Data within that range are not
 % outliers. Set the default minimum percent variation to be suspicious...
-      Percent_thresh = PercentThresh; % default 1.3
+      Percent_thresh = 1.3; 
 %  Alternatively, deviations over 2*std are outliers, if std is not very small.
-      z_thresh = ZThresh;  % default 2.5
+      z_thresh = 2;  % Currently not used for default.
 % Large intravolume motion may cause image reconstruction
 % errors, and fast motion may cause spin history effects.
 % Guess at allowable motion within a TR. For good subjects,
 % would like this value to be as low as 0.3. For clinical subjects,
 % set this threshold higher.
-      mv_thresh = MvThresh;  % default 0.5
+      mv_thresh = 0.5;  % try 0.3 for subjects with intervals with low noise
+                        % try 1.0 for severely noisy subjects   
 
 % ------------------------
 % Collect files
@@ -137,17 +133,17 @@ if nargin > 0
         %[mv_path,mv_name,mv_ext] = fileparts(mvmt_file);
         % M{1} = mv_data;
     end
-    repair1_flag = 0;   % Only repair scan 1 when necessary
-    %repair1_flag = 1;   % Force repair scan 1  (Reisslab)
+    %repair1_flag = 0;   % Only repair scan 1 when necessary
+    repair1_flag = 1;   % Force repair scan 1  (Reisslab)
     GoRepair = 1;       % Automatic Repair
-    if nargin == 7      % To stay backward compatible with v2.1
+    if nargin == 4      % To stay backward compatible with v2.1
         if RepairType == 1
             GoRepair = 1;
         elseif RepairType == 2
-            mv_thresh = MvThresh;
+            mv_thresh = 0.5;
             GoRepair = 2;
         elseif RepairType == 0  % no repairs done, bad scans found.
-            mv_thresh = MvThresh;
+            mv_thresh = 0.5;
             GoRepair = 4;
         end
     end
@@ -199,14 +195,12 @@ if global_type_flag==3
     maskcount = sum(sum(sum(maskY)));  %  Number of voxels in mask.
     voxelcount = prod(size(maskY));    %  Number of voxels in 3D volume.
 end
-
 if global_type_flag == 4   %  Automask option
     disp('Generated mask image is written to file ArtifactMask.img.')
     Pnames = P{1};
     Automask = art_automask(Pnames(1,:),-1,1);
     maskcount = sum(sum(sum(Automask)));  %  Number of voxels in mask.
     voxelcount = prod(size(Automask));    %  Number of voxels in 3D volume.
-        
 end
 spm_input('!DeleteInputObj');
 
@@ -320,10 +314,8 @@ end
     gmean = mean(g);
     pctmap = 100*gsigma/gmean;
     mincount = Percent_thresh*gmean/100;
-    z_thresh = min( z_thresh, mincount/gsigma );
-    %z_thresh = max( z_thresh, mincount/gsigma ); %was commmented out in
-    %the original ARtRepair
-    %z_thresh = mincount/gsigma;        % Default value is PercentThresh.
+    %z_thresh = max( z_thresh, mincount/gsigma );
+    z_thresh = mincount/gsigma;        % Default value is PercentThresh.
     z_thresh = 0.1*round(z_thresh*10); % Round to nearest 0.1 Z-score value
     zscoreA = (g - mean(g))./std(g);  % in case Matlab zscore is not available
     glout_idx = (find(abs(zscoreA) > z_thresh))';
@@ -359,7 +351,7 @@ end
             mv_thresh = min(1.0,delsort(round(0.75*nscans)));
             words = ['Automatic adjustment of movement threshold to ' num2str(mv_thresh)];
             disp(words)
-            Percent_thresh = mv_thresh + PercentThresh - MvThresh;    % Modified
+            Percent_thresh = mv_thresh + 0.8;    % v2.4
         end
     end
     
@@ -585,7 +577,6 @@ setappdata(h_clipmvmt,'data3',repair1_flag);
 
 % For GUI or RepairAlone, add deweighting margins to top plot
 % Don't apply margins when motion adjustment was used.(v2.2)
-
 if GoRepair == 0 | GoRepair == 1
     art_clipmvmt;
     art_addmargin;
@@ -612,7 +603,6 @@ if GoRepair == 1 | GoRepair == 2
     end
     cd(temp);
     % Return to directory in use before writing the jpg.
-    
     art_repairvol(P);
 end
 

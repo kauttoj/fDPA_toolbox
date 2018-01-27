@@ -14,10 +14,14 @@ function  Output = art_centroid(Y);
 %       
 % Paul Mazaika - July 2004   [ no code updates for v.2 ]
 % v3.  added multi SPM versions. Mar09
+% v4.  support SPM12. Dec14
 
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 if ( nargin == 0 )
     if strcmp(spm_ver,'spm5')

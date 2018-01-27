@@ -29,6 +29,7 @@ function art_groupoutlier(ConImageNames, GroupMaskName,Groupscale, OutputDir)
 %  BUG: Sometimes the figure legend will cover a data point.
 %  Compatible with SPM5 and SPM2.
 %  paul mazaika - added SPM8, May 2009
+%  supports SPM12, Dec2014
 
 
 % Set some reference guides for assumed single subject values
@@ -43,10 +44,12 @@ REFSTD = 0.25;   % for 1% noise, difference of 50 sample estimates.
 % Set high intersubject variability, used only in Figures.
 UNIFHIGH = 0.2;  %  was 0.17 
 
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 if nargin == 0
      %clear all;
@@ -144,11 +147,12 @@ for i = 1:NumSubj
     Y{i} = [ b2 '/' b1 '/' b ];
 end
 
-% Find two robust measures of GQmean
+% Use median as a robust measure of GQmean.
+% The Matlab Statistics toolbox includes the trimmean function.
 groupmean = mean(X(:,3));
 medianofgroup = median(X(:,3));
-trim50 = trimmean(X(:,3),50);
-ROBUSTM = 0.5*(medianofgroup + trim50);
+%trim50 = trimmean(X(:,3),50);
+ROBUSTM = medianofgroup;
 
 % Find a measure of the horizontal location of the main cluster
 allwidths = X(:,2);

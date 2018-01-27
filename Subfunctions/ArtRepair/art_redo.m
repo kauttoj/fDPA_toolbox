@@ -1,5 +1,5 @@
 function art_redo
-% FUNCTION art_redo   v3.1
+% FUNCTION art_redo   v3.2
 %    
 % Applies repairs and deweighting to an existing SPM design. This program
 % asks to replace the images in each session with repaired images, and
@@ -28,6 +28,8 @@ function art_redo
 %       Prevents the whitening process in SPM estimation.
 % 
 % v3.1  May09 pkm
+% v3.2 supports SPM12 Dec2014 pkm
+
 
 % v2.2  changed SPM.xVi.form from 'i.i.d' to 'none'.   Jul 2007
 %       scales to % using peak of regressor and contrast sum.
@@ -35,14 +37,15 @@ function art_redo
 %       assumes each file realigned and repaired separately. Mar09 pkm
 % v3.1  fixed bugs (RMitchell): Deweight=1, spm_ver 
 % Paul Mazaika, Jan 2007
+% Bug fix for output. A. Gonzalo
 
 clear SPM scans;
-%spm_defaults for SPM5 and SPM2
-spm('defaults','fmri');
-% Identify spm version
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+
 
 % Get the existing SPM file
 if strcmp(spm_ver,'spm5')
@@ -129,7 +132,7 @@ if Deweight == 1
             deweightlist = fullfile(imagedir,'art_deweighted.txt');
             outindex = load(deweightlist);
             Vom(outindex + index -1) = 0.01;
-            outmsg = [num2str(length(outindex)) ' images will be deweighted in session ' isess];
+            outmsg = [num2str(length(outindex)) ' images will be deweighted in session ' num2str(isess)];
             disp(outmsg)
         end
         SPM.xX.W = sparse(diag(Vom,0));

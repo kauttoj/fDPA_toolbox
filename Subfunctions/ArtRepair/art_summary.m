@@ -1,5 +1,5 @@
 function [GQout,GQmean,Resout] = art_summary(ImageFullName,MaskFullName,OutputFolder,Figname,Fignum,AutoParams);
-% FUNCTION art_summary    (v3) FEB 2009
+% FUNCTION art_summary    (v3.1) Dec 2014
 % For manual GUI:
 %    >>art_summary    will use GUI to ask for images
 %
@@ -72,11 +72,14 @@ function [GQout,GQmean,Resout] = art_summary(ImageFullName,MaskFullName,OutputFo
 %       removed dependency on Matlab Statistics Toolbox.   pkm july07 
 % v2.3  scale GQ for nargin > 0. Constrain peak to be positive.
 % v3    call art_percentscale for scaling, pkm feb09
+% v3.1  supports SPM12, Dec2014 pkm. Support .nii format, Aug2015.
 
-spm_defaults;
-spmv = spm('Ver'); spm_ver = 'spm2';
-if (strcmp(spmv,'SPM5') | strcmp(spmv,'SPM8b') | strcmp(spmv,'SPM8') )
-    spm_ver = 'spm5'; end
+% Configure while preserving old SPM versions
+spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
+if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
+if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
+    else spm('Defaults','fmri'); end
+    
 
 if nargin > 0
     % Assumed to handle one image at a time.
@@ -125,7 +128,12 @@ end
 % Find the ResMS and last beta image in Results folder with the Images
    R = spm_vol(Rimages);
    nimages = size(R,1);
-   Resimage = fullfile(ResultsFolder,'ResMS.img'); 
+   %Resimage = fullfile(ResultsFolder,'ResMS.img'); 
+   if exist(fullfile(ResultsFolder,'ResMS.img'))
+        Resimage = fullfile(ResultsFolder,'ResMS.img');
+   else
+        Resimage = fullfile(ResultsFolder,'ResMS.nii');
+   end
    
 
 % Find inner region (imask) and shell region (smask) of Mask.
