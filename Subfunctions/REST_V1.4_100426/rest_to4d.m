@@ -34,9 +34,7 @@ function [AllVolume, VoxelSize, ImgFileList, Header] =rest_to4d(ADataDir)
 	fprintf('\n\t Read 3D EPI functional images: "%s".', ADataDir);
 	theDataType ='double';	%Default data-type I assumed!
 	for x = 1:size(ImgFileList,1),    		
-		rest_waitbar(x/size(ImgFileList,1), ...
-					ImgFileList{x}, ...
-					'Build 3D+time Dataset','Child','NeedCancelBtn');
+
 		theFilename = fullfile(ADataDir,ImgFileList{x});
 		[theOneTimePoint, VoxelSize, Header] = rest_readfile(theFilename);
 		%AllVolume(:,:,:,x) = uint16(theOneTimePoint);	%Dynamic decision of which data-type I choose! 20071031

@@ -44,7 +44,7 @@ if isempty(a)
     uiwait(msgbox('REST not found! It should be loaded.','program path setup'));
     return
 end
-[a, fileN, extn] = fileparts(which('art_global_ep.m'));
+[a, fileN, extn] = fileparts(which('art_global.m'));
 if isempty(a)
     uiwait(msgbox('ARTREPAIR not found! It should be loaded.','program path setup'));
     return
@@ -60,6 +60,9 @@ SPMversion=AutoDataProcessParameter.SPMver;
 
 set(0,'units','pixels');
 SPM_screensize = spm('WinSize','0',1);
+
+warning('off','MATLAB:RandStream:ActivatingLegacyGenerators');
+warning('off','MATLAB:hg:WillBeRemovedReplaceWith');
 
 AllTargetDirs={};
 
@@ -689,7 +692,7 @@ if (AutoDataProcessParameter.IsNeedConvertFunDCM2IMG==1)
             all_timepoints(i,SES)=length(DirImg);
             
             if AutoDataProcessParameter.TimePoints>0 && AutoDataProcessParameter.TimePoints~=length(DirImg)
-                error('Given timepoint count does not match IMG file count!')
+                error('Given timepoint count (%i) does not match IMG file count (%i)!',AutoDataProcessParameter.TimePoints,length(DirImg));
             end
             
             clear_fun_reorient([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'T1Img',filesep,AutoDataProcessParameter.SubjectID{i}]);
@@ -2165,7 +2168,7 @@ if (AutoDataProcessParameter.VolumeArtifactRemoval==1)
             MvParams=[AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,'RealignParameter',filesep,AutoDataProcessParameter.SubjectID{i},filesep,DirImg(1).name];
             
             % Run art_global (ArtRepair)
-            art_global(InputImages, MvParams, 4, 2, AutoDataProcessParameter.PercentThresh, AutoDataProcessParameter.ZThresh, AutoDataProcessParameter.MvmtThresh);
+            art_global_fdpa(InputImages, MvParams, 4, 2, AutoDataProcessParameter.PercentThresh, AutoDataProcessParameter.ZThresh, AutoDataProcessParameter.MvmtThresh);
             
             DirImg=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,'v*.*']);
             for j=1:length(DirImg)

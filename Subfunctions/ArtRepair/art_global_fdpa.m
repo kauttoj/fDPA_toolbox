@@ -1,4 +1,4 @@
-function art_global(Images,RealignmentFile,HeadMaskType, RepairType,prcThr,movThr,)
+function art_global_fdpa(Images,RealignmentFile,HeadMaskType, RepairType,PercentThresh,ZThresh,MvmtThresh)
 % FORMAT art_global                         (v.2.6)
 %
 %     Art_global allows visual inspection of average intensity and
@@ -11,7 +11,7 @@ function art_global(Images,RealignmentFile,HeadMaskType, RepairType,prcThr,movTh
 % models. Outliers can also be defined by user manual edits. When all
 % repair parameters are set, the user writes new repaired files by using
 % the Repair button in the GUI. Repairs can be done by interpolation
-% between the nearest non-repaired scans (RECOMMNEDED), 
+% between the nearest non-repaired scans (RECOMMNEDED),
 % or despike interpolation using the
 % immediate before and after scans, or inserting the mean image in place
 % of the image to be repaired. Repairs will change the scans marked by
@@ -22,9 +22,9 @@ function art_global(Images,RealignmentFile,HeadMaskType, RepairType,prcThr,movTh
 % Unchanged images are copied to a "v" named file, so SPM can run with
 % the "v" images. The program writes a file art_repaired.txt with a list
 % of all repaired images, and art_deweighted.txt with a list of all images
-% to be deweighted during estimation. Deweighting is recommended for both 
-% repaired images and margin images. Repairs bias contrasts lower, but 
-% informally, the effect seems small when fewer than 5-10% of scans are 
+% to be deweighted during estimation. Deweighting is recommended for both
+% repaired images and margin images. Repairs bias contrasts lower, but
+% informally, the effect seems small when fewer than 5-10% of scans are
 % repaired. For deeper repairs, deweighting must be implemented in a
 % batch script, e.g. as in the art_redo function.
 %     A set of default thresholds is suggested ( 1.3% variation in global
@@ -34,14 +34,14 @@ function art_global(Images,RealignmentFile,HeadMaskType, RepairType,prcThr,movTh
 % (motion -> 1.0). The values of the intensity and motion thresholds are
 % linked and will change together. As a default, all images with total
 % movement > 3 mm will also be marked for repair. For special situations,
-% the outlier edit feature can mark additional scans. When motion 
+% the outlier edit feature can mark additional scans. When motion
 % regressors will be used, suggest setting the motion threshold to 0.5
 % and not applying the margins.
 %
 % For MULTIPLE SESSIONS, we suggest realigning each session separately,
 % and repairing each session separately. This approach agrees more
 % with SPM standard practice, and clinical subjects often move between
-% sessions. This approach differs from previous versions of this program. 
+% sessions. This approach differs from previous versions of this program.
 %
 % For batch scripts, use
 % FORMAT art_global(Images, RealignmentFile, HeadMaskType, RepairType)
@@ -94,27 +94,27 @@ pfig = [];
 spmv = spm('Ver'); spm_ver = 'spm5';  % chooses spm_select to read vols
 if (strcmp(spmv,'SPM2')) spm_ver = 'spm2'; end
 if (strcmp(spmv,'SPM2') || strcmp(spmv,'SPM5')) spm_defaults;
-    else spm('Defaults','fmri'); end
+else spm('Defaults','fmri'); end
 
 % ------------------------
 % Default values for outliers
 % ------------------------
 % When std is very small, set a minimum threshold based on expected physiological
-% noise. Scanners have about 0.1% error when fully in spec. 
-% Gray matter physiology has ~ 1% range, ~0.5% RMS variation from mean. 
+% noise. Scanners have about 0.1% error when fully in spec.
+% Gray matter physiology has ~ 1% range, ~0.5% RMS variation from mean.
 % For 500 samples, expect a 3-sigma case, so values over 1.5% are
 % suspicious as non-physiological noise. Data within that range are not
 % outliers. Set the default minimum percent variation to be suspicious...
-      Percent_thresh = 1.3; 
+Percent_thresh = PercentThresh;
 %  Alternatively, deviations over 2*std are outliers, if std is not very small.
-      z_thresh = 2;  % Currently not used for default.
+z_thresh = ZThresh;  % Currently not used for default.
 % Large intravolume motion may cause image reconstruction
 % errors, and fast motion may cause spin history effects.
 % Guess at allowable motion within a TR. For good subjects,
 % would like this value to be as low as 0.3. For clinical subjects,
 % set this threshold higher.
-      mv_thresh = 0.5;  % try 0.3 for subjects with intervals with low noise
-                        % try 1.0 for severely noisy subjects   
+mv_thresh = MvmtThresh;  % try 0.3 for subjects with intervals with low noise
+% try 1.0 for severely noisy subjects
 
 % ------------------------
 % Collect files
@@ -151,27 +151,27 @@ else
     %num_sess = spm_input('How many sessions?',1,'n',1,1);
     num_sess = 1;
     global_type_flag = spm_input('Which global mean to use?', 1, 'm', ...
-    'Regular SPM mask  | Auto ( Generates ArtifactMask and can Calculate Movement )| User Mask  ( in same voxel space as functional images ) | Every Voxel',...
-              [1 4 3 2], 2);
+        'Regular SPM mask  | Auto ( Generates ArtifactMask and can Calculate Movement )| User Mask  ( in same voxel space as functional images ) | Every Voxel',...
+        [1 4 3 2], 2);
     if global_type_flag==3
-         if strcmp(spm_ver,'spm5')
-            mask = spm_select(1, 'image', 'Select mask image in functional space'); 
-         else  % spm2 version
+        if strcmp(spm_ver,'spm5')
+            mask = spm_select(1, 'image', 'Select mask image in functional space');
+        else  % spm2 version
             mask = spm_get(1, '.img', 'Select mask image in functional space');
-         end
+        end
     end
     % If there are no realignment files available, compute some instead.
     realignfile = 1;   % Default case is like artdetect4.
     if global_type_flag == 4
         realignfile = spm_input('Have realignment files?',1, 'b', ' Yes | No ', [ 1 0 ], 1);
     end
-
+    
     M = []; P = [];
     if strcmp(spm_ver,'spm5')
         for i = 1:num_sess
             P{i} = spm_select(Inf,'image',['Select data images for session'  num2str(i) ':']);
             if realignfile == 1
-                mvmt_file = spm_select(1,'any',['Select movement params file for session' num2str(i) ':']);      
+                mvmt_file = spm_select(1,'any',['Select movement params file for session' num2str(i) ':']);
                 M{i} = load(mvmt_file);
             end
         end
@@ -206,10 +206,10 @@ spm_input('!DeleteInputObj');
 
 P = char(P);
 %if nargin == 0
-    mv_data = [];
-    for i = 1:length(M)
-        mv_data = vertcat(mv_data,M{i});
-    end
+mv_data = [];
+for i = 1:length(M)
+    mv_data = vertcat(mv_data,M{i});
+end
 %end
 
 
@@ -217,20 +217,20 @@ P = char(P);
 % get file identifiers and Global values
 % -------------------------
 
-fprintf('%-4s: ','Mapping files...')                                  
+fprintf('%-4s: ','Mapping files...')
 VY     = spm_vol(P);
-fprintf('%3s\n','...done')                                          
+fprintf('%3s\n','...done')
 
 temp = any(diff(cat(1,VY.dim),1,1),1);
 if strcmp(spm_ver,'spm5')
-     % or could test length(temp) == 3
-     if ~isempty(find(diff(cat(1,VY.dim)) ~= 0 ))   
- 	    error('images do not all have the same dimensions (SPM5)')
-     end
+    % or could test length(temp) == 3
+    if ~isempty(find(diff(cat(1,VY.dim)) ~= 0 ))
+        error('images do not all have the same dimensions (SPM5)')
+    end
 elseif length(temp) == 4       % SPM2 case
-     if any(any(diff(cat(1,VY.dim),1,1),1)&[1,1,1,0])
-         error('images do not all have the same dimensions')
-     end
+    if any(any(diff(cat(1,VY.dim),1,1),1)&[1,1,1,0])
+        error('images do not all have the same dimensions')
+    end
 end
 
 nscans = size(P,1);
@@ -244,23 +244,23 @@ g      = zeros(nscans,1);
 
 fprintf('%-4s: %3s','Calculating globals...',' ')
 if global_type_flag==1  % regular mean
-    for i  = 1:nscans  
-	    g(i) = spm_global(VY(i));
+    for i  = 1:nscans
+        g(i) = spm_global(VY(i));
     end
 elseif global_type_flag==2  % every voxel
     for i = 1:nscans
         g(i) = mean(mean(mean(spm_read_vols(VY(i)))));
     end
 elseif global_type_flag == 3 % user masked mean
-     Y = spm_read_vols(VY(1));
+    Y = spm_read_vols(VY(1));
     %voxelcount = prod(size(Y));
     %vinv = inv(VY(1).mat);
     %[dummy, idx_to_mask] = intersect(XYZmm', maskXYZmm', 'rows');
     %maskcount = length(idx_to_mask);
     for i = 1:nscans
-        Y = spm_read_vols(VY(i)); 
+        Y = spm_read_vols(VY(i));
         Y = Y.*maskY;
-        %Y(idx_to_mask) = [];   
+        %Y(idx_to_mask) = [];
         g(i) = mean(mean(mean(Y)))*voxelcount/maskcount;
         %g(i) = mean(Y(idx_to_mask));
     end
@@ -295,9 +295,9 @@ else   %  global_type_flag == 4  %  auto mask
 end
 
 % Convert rotation movement to degrees
-mv_data(:,4:6)= mv_data(:,4:6)*180/pi; 
-    
-    
+mv_data(:,4:6)= mv_data(:,4:6)*180/pi;
+
+
 fprintf('%s%3s\n','...done\n')
 if global_type_flag==3
     fprintf('\n%g voxels were in the user mask.\n', maskcount)
@@ -308,65 +308,65 @@ end
 
 % ------------------------
 % Compute default out indices by z-score, or by Percent-level is std is small.
-% ------------------------ 
+% ------------------------
 %  Consider values > Percent_thresh as outliers (instead of z_thresh*gsigma) if std is small.
-    gsigma = std(g);
-    gmean = mean(g);
-    pctmap = 100*gsigma/gmean;
-    mincount = Percent_thresh*gmean/100;
-    %z_thresh = max( z_thresh, mincount/gsigma );
-    z_thresh = mincount/gsigma;        % Default value is PercentThresh.
-    z_thresh = 0.1*round(z_thresh*10); % Round to nearest 0.1 Z-score value
-    zscoreA = (g - mean(g))./std(g);  % in case Matlab zscore is not available
-    glout_idx = (find(abs(zscoreA) > z_thresh))';
+gsigma = std(g);
+gmean = mean(g);
+pctmap = 100*gsigma/gmean;
+mincount = Percent_thresh*gmean/100;
+%z_thresh = max( z_thresh, mincount/gsigma );
+z_thresh = mincount/gsigma;        % Default value is PercentThresh.
+z_thresh = 0.1*round(z_thresh*10); % Round to nearest 0.1 Z-score value
+zscoreA = (g - mean(g))./std(g);  % in case Matlab zscore is not available
+glout_idx = (find(abs(zscoreA) > z_thresh))';
 
 % ------------------------
 % Compute default out indices from rapid movement
-% ------------------------ 
+% ------------------------
 %   % Rotation measure assumes voxel is 65 mm from origin of rotation.
-    if realignfile == 1 | realignfile == 0
-        delta = zeros(nscans,1);  % Mean square displacement in two scans
-        for i = 2:nscans
-            delta(i,1) = (mv_data(i-1,1) - mv_data(i,1))^2 +...
-                    (mv_data(i-1,2) - mv_data(i,2))^2 +...
-                    (mv_data(i-1,3) - mv_data(i,3))^2 +...
-                    1.28*(mv_data(i-1,4) - mv_data(i,4))^2 +...
-                    1.28*(mv_data(i-1,5) - mv_data(i,5))^2 +...
-                    1.28*(mv_data(i-1,6) - mv_data(i,6))^2;
-            delta(i,1) = sqrt(delta(i,1));
-        end
+if realignfile == 1 | realignfile == 0
+    delta = zeros(nscans,1);  % Mean square displacement in two scans
+    for i = 2:nscans
+        delta(i,1) = (mv_data(i-1,1) - mv_data(i,1))^2 +...
+            (mv_data(i-1,2) - mv_data(i,2))^2 +...
+            (mv_data(i-1,3) - mv_data(i,3))^2 +...
+            1.28*(mv_data(i-1,4) - mv_data(i,4))^2 +...
+            1.28*(mv_data(i-1,5) - mv_data(i,5))^2 +...
+            1.28*(mv_data(i-1,6) - mv_data(i,6))^2;
+        delta(i,1) = sqrt(delta(i,1));
     end
-    
-     % Also name the scans before the big motions (v2.2 fix)
-    deltaw = zeros(nscans,1);
-    for i = 1:nscans-1
-        deltaw(i) = max(delta(i), delta(i+1));
+end
+
+% Also name the scans before the big motions (v2.2 fix)
+deltaw = zeros(nscans,1);
+for i = 1:nscans-1
+    deltaw(i) = max(delta(i), delta(i+1));
+end
+delta(1:nscans-1,1) = deltaw(1:nscans-1,1);
+
+% Adapt the threshold  (v2.3 fix)
+if RepairType == 2 | GoRepair == 4
+    delsort = sort(delta);
+    if delsort(round(0.75*nscans)) > mv_thresh
+        mv_thresh = min(1.0,delsort(round(0.75*nscans)));
+        words = ['Automatic adjustment of movement threshold to ' num2str(mv_thresh)];
+        disp(words)
+        Percent_thresh = mv_thresh + 0.8;    % v2.4
     end
-    delta(1:nscans-1,1) = deltaw(1:nscans-1,1);
-    
-    % Adapt the threshold  (v2.3 fix)
-    if RepairType == 2 | GoRepair == 4
-        delsort = sort(delta);
-        if delsort(round(0.75*nscans)) > mv_thresh
-            mv_thresh = min(1.0,delsort(round(0.75*nscans)));
-            words = ['Automatic adjustment of movement threshold to ' num2str(mv_thresh)];
-            disp(words)
-            Percent_thresh = mv_thresh + 0.8;    % v2.4
-        end
-    end
-    
-    mvout_idx = find(delta > mv_thresh)';
-    
-    % Total repair list
-    out_idx = unique([mvout_idx glout_idx]);
-    if repair1_flag == 1
-        out_idx = unique([ 1 out_idx]);
-    end
-    % Initial deweight list before margins
-    outdw_idx = out_idx; 
-    % Initial clip list without removing large displacements
-    clipout_idx = out_idx;
-     
+end
+
+mvout_idx = find(delta > mv_thresh)';
+
+% Total repair list
+out_idx = unique([mvout_idx glout_idx]);
+if repair1_flag == 1
+    out_idx = unique([ 1 out_idx]);
+end
+% Initial deweight list before margins
+outdw_idx = out_idx;
+% Initial clip list without removing large displacements
+clipout_idx = out_idx;
+
 
 % -----------------------
 % Draw initial figure
@@ -422,39 +422,39 @@ for i = 1:length(glout_idx)
 end
 
 if realignfile == 1
-	subplot(5,1,3);
+    subplot(5,1,3);
     xa = [ 1:nscans];
-	plot(xa,mv_data(:,1),'b-',xa,mv_data(:,2),'g-',xa,mv_data(:,3),'r-',...
-       xa,mv_data(:,4),'r--',xa,mv_data(:,5),'b--',xa,mv_data(:,6),'g--');
+    plot(xa,mv_data(:,1),'b-',xa,mv_data(:,2),'g-',xa,mv_data(:,3),'r-',...
+        xa,mv_data(:,4),'r--',xa,mv_data(:,5),'b--',xa,mv_data(:,6),'g--');
     %plot(,'--');
-	ylabel('ReAlignment');
-	xlabel('Translation (mm) solid lines, Rotation (deg) dashed lines');
-	legend('x mvmt', 'y mvmt', 'z mvmt','pitch','roll','yaw',0);
-	h = gca;
-	set(h,'Ygrid','on');
+    ylabel('ReAlignment');
+    xlabel('Translation (mm) solid lines, Rotation (deg) dashed lines');
+    legend('x mvmt', 'y mvmt', 'z mvmt','pitch','roll','yaw','location','eastoutside');
+    h = gca;
+    set(h,'Ygrid','on');
 elseif realignfile == 0
     subplot(5,1,3);
-	plot(mv0data(:,1:3));
-	ylabel('Alignment (voxels)');
-	xlabel('Scans. VERY APPROXIMATE EARLY-LOOK translation in voxels.');
-	legend('x mvmt', 'y mvmt', 'z mvmt',0);
-	h = gca;
-	set(h,'Ygrid','on');
-end 
+    plot(mv0data(:,1:3));
+    ylabel('Alignment (voxels)');
+    xlabel('Scans. VERY APPROXIMATE EARLY-LOOK translation in voxels.');
+    legend('x mvmt', 'y mvmt', 'z mvmt','location','eastoutside');
+    h = gca;
+    set(h,'Ygrid','on');
+end
 
 subplot(5,1,4);   % Rapid movement plot
 plot(delta);
 ylabel('Motion (mm/TR)');
 xlabel('Scan to scan movement (~mm). Rotation assumes 65 mm from origin');
 y_lim = get(gca, 'YLim');
-legend('Fast motion',0);
+legend('Fast motion','location','eastoutside');
 h = gca;
 set(h,'Ygrid','on');
 
 thresh_x = 1:nscans;
 thresh_y = mv_thresh*ones(1,nscans);
 line(thresh_x, thresh_y, 'Color', 'r');
-   
+
 % Mark all movement outliers with vertical lines
 subplot(5,1,4)
 axes_lim = get(gca, 'YLim');
@@ -465,114 +465,114 @@ end
 
 %keyboard;
 h_rangetext = uicontrol(gcf, 'Units', 'characters', 'Position', [10 10 18 2],...
-        'String', 'StdDev of data is: ', 'Style', 'text', ...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', 'StdDev of data is: ', 'Style', 'text', ...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8]);
 h_rangenum = uicontrol(gcf, 'Units', 'characters', 'Position', [29 10 10 2], ...
-        'String', num2str(gsigma), 'Style', 'text', ...
-        'HorizontalAlignment', 'left',...
-        'Tag', 'rangenum',...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', num2str(gsigma), 'Style', 'text', ...
+    'HorizontalAlignment', 'left',...
+    'Tag', 'rangenum',...
+    'BackgroundColor', [0.8 0.8 0.8]);
 h_threshtext = uicontrol(gcf, 'Units', 'characters', 'Position', [25 8 16 2],...
-        'String', 'Current threshold (std devs):', 'Style', 'text', ...
-        'HorizontalAlignment', 'center', ...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', 'Current threshold (std devs):', 'Style', 'text', ...
+    'HorizontalAlignment', 'center', ...
+    'BackgroundColor', [0.8 0.8 0.8]);
 h_threshnum = uicontrol(gcf, 'Units', 'characters', 'Position', [44 8 10 2],...
-        'String', num2str(z_thresh), 'Style', 'text', ...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8],...
-        'Tag', 'threshnum');
+    'String', num2str(z_thresh), 'Style', 'text', ...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8],...
+    'Tag', 'threshnum');
 h_threshmvtext = uicontrol(gcf, 'Units', 'characters', 'Position', [106 8 18 2],...
-        'String', 'Motion threshold  (mm / TR):', 'Style', 'text', ...
-        'HorizontalAlignment', 'center', ...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', 'Motion threshold  (mm / TR):', 'Style', 'text', ...
+    'HorizontalAlignment', 'center', ...
+    'BackgroundColor', [0.8 0.8 0.8]);
 h_threshnummv = uicontrol(gcf, 'Units', 'characters', 'Position', [126 8 10 2],...
-        'String', num2str(mv_thresh), 'Style', 'text', ...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8],...
-        'Tag', 'threshnummv');
+    'String', num2str(mv_thresh), 'Style', 'text', ...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8],...
+    'Tag', 'threshnummv');
 h_threshtextpct = uicontrol(gcf, 'Units', 'characters', 'Position', [66 8 16 2],...
-        'String', 'Current threshold (% of mean):', 'Style', 'text', ...
-        'HorizontalAlignment', 'center', ...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', 'Current threshold (% of mean):', 'Style', 'text', ...
+    'HorizontalAlignment', 'center', ...
+    'BackgroundColor', [0.8 0.8 0.8]);
 h_threshnumpct = uicontrol(gcf, 'Units', 'characters', 'Position', [86 8 10 2],...
-        'String', num2str(z_thresh*pctmap), 'Style', 'text', ...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8],...
-        'Tag', 'threshnumpct');
+    'String', num2str(z_thresh*pctmap), 'Style', 'text', ...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8],...
+    'Tag', 'threshnumpct');
 h_deweightlist = uicontrol(gcf, 'Units', 'characters', 'Position', [150 6 1 1 ],...
-        'String', int2str(outdw_idx), 'Style', 'text', ...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8],...
-        'Tag', 'deweightlist');
+    'String', int2str(outdw_idx), 'Style', 'text', ...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8],...
+    'Tag', 'deweightlist');
 h_clipmvmtlist = uicontrol(gcf, 'Units', 'characters', 'Position', [152 6 1 1 ],...
-        'String', int2str(clipout_idx), 'Style', 'text', ...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8],...
-        'Tag', 'clipmvmtlist');
+    'String', int2str(clipout_idx), 'Style', 'text', ...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8],...
+    'Tag', 'clipmvmtlist');
 h_indextext = uicontrol(gcf, 'Units', 'characters', 'Position', [10 3 15 2],...
-        'String', 'Outlier indices: ', 'Style', 'text', ...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8], ...
-        'ForegroundColor', 'r');
+    'String', 'Outlier indices: ', 'Style', 'text', ...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8], ...
+    'ForegroundColor', 'r');
 h_indexedit = uicontrol(gcf, 'Units', 'characters', 'Position', [25 3.25 40 2],...
-        'String', int2str(out_idx), 'Style', 'edit', ...
-        'HorizontalAlignment', 'left', ...
-        'Callback', 'art_outlieredit',...
-        'BackgroundColor', [0.8 0.8 0.8],...
-        'Tag', 'indexedit');
+    'String', int2str(out_idx), 'Style', 'edit', ...
+    'HorizontalAlignment', 'left', ...
+    'Callback', 'art_outlieredit',...
+    'BackgroundColor', [0.8 0.8 0.8],...
+    'Tag', 'indexedit');
 h_indexinst = uicontrol(gcf, 'Units', 'characters', 'Position', [66 3 40 2],...
-        'String', '[Hit return to update after editing]', 'Style', 'text',...
-        'HorizontalAlignment', 'left', ...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', '[Hit return to update after editing]', 'Style', 'text',...
+    'HorizontalAlignment', 'left', ...
+    'BackgroundColor', [0.8 0.8 0.8]);
 h_deweighttext = uicontrol(gcf, 'Units', 'characters', 'Position', [115 1 21 2],...
-        'String', 'Click to add margins for deweighting', 'Style', 'text', ...
-        'HorizontalAlignment', 'center', ...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', 'Click to add margins for deweighting', 'Style', 'text', ...
+    'HorizontalAlignment', 'center', ...
+    'BackgroundColor', [0.8 0.8 0.8]);
 h_clipmvmttext = uicontrol(gcf, 'Units', 'characters', 'Position', [94 1 21 2],...
-        'String', 'Mark > 3mm movments for repair', 'Style', 'text', ...
-        'HorizontalAlignment', 'center', ...
-        'BackgroundColor', [0.8 0.8 0.8]);
+    'String', 'Mark > 3mm movments for repair', 'Style', 'text', ...
+    'HorizontalAlignment', 'center', ...
+    'BackgroundColor', [0.8 0.8 0.8]);
 if realignfile == 1
-   h_repairtext = uicontrol(gcf, 'Units', 'characters', 'Position', [137 1 17 2],...
+    h_repairtext = uicontrol(gcf, 'Units', 'characters', 'Position', [137 1 17 2],...
         'String', 'Writes repaired volumes', 'Style', 'text', ...
         'HorizontalAlignment', 'center', ...
         'BackgroundColor', [0.8 0.8 0.8]);
 else  % realignfile == 0
-   h_repairtext = uicontrol(gcf, 'Units', 'characters', 'Position', [137 1 17 2],...
+    h_repairtext = uicontrol(gcf, 'Units', 'characters', 'Position', [137 1 17 2],...
         'String', 'WARNING!! DATA NOT REALIGNED', 'Style', 'text', ...
         'HorizontalAlignment', 'center', ...
         'BackgroundColor', [0.8 0.8 0.8]);
 end
-h_addmargin = uicontrol(gcf, 'Units', 'characters', 'Position', [120 3.25 10 2],...
-        'String', 'Margin', 'Style', 'pushbutton', ...
-        'Tooltipstring', 'Adds margins to deweight in estimation', ...
-        'BackgroundColor', [ 0.7 0.9 0.7], 'ForegroundColor','k',...
-        'Callback', 'art_addmargin');
-h_clipmvmt = uicontrol(gcf, 'Units', 'characters', 'Position', [100 3.25 10 2],...
-        'String', 'Clip', 'Style', 'pushbutton', ...
-        'Tooltipstring', 'Marks displacements > 3 mm for repair', ...
-        'BackgroundColor', [ 0.7 0.7 0.8 ], 'ForegroundColor','k',...
-        'Callback', 'art_clipmvmt');
-h_repair = uicontrol(gcf, 'Units', 'characters', 'Position', [140 3.25 10 2],...
-        'String', 'REPAIR', 'Style', 'pushbutton', ...
-        'Tooltipstring', 'Writes repaired images', ...
-        'BackgroundColor', [ 0.9 0.7 0.7], 'ForegroundColor','r',...
-        'Callback', 'art_repairvol');
-h_up = uicontrol(gcf, 'Units', 'characters', 'Position', [10 8 10 2],...
-        'String', 'Up', 'Style', 'pushbutton', ...
-        'TooltipString', 'Raise threshold for outliers', ...
-        'Callback', 'art_threshup');
-h_down = uicontrol(gcf, 'Units', 'characters', 'Position', [10 6 10 2],...
-        'String', 'Down', 'Style', 'pushbutton', ...
-        'TooltipString', 'Lower threshold for outliers', ...
-        'Callback', 'art_threshdown');
+% h_addmargin = uicontrol(gcf, 'Units', 'characters', 'Position', [120 3.25 10 2],...
+%     'String', 'Margin', 'Style', 'pushbutton', ...
+%     'Tooltipstring', 'Adds margins to deweight in estimation', ...
+%     'BackgroundColor', [ 0.7 0.9 0.7], 'ForegroundColor','k',...
+%     'Callback', 'art_addmargin');
+% h_clipmvmt = uicontrol(gcf, 'Units', 'characters', 'Position', [100 3.25 10 2],...
+%     'String', 'Clip', 'Style', 'pushbutton', ...
+%     'Tooltipstring', 'Marks displacements > 3 mm for repair', ...
+%     'BackgroundColor', [ 0.7 0.7 0.8 ], 'ForegroundColor','k',...
+%     'Callback', 'art_clipmvmt');
+% h_repair = uicontrol(gcf, 'Units', 'characters', 'Position', [140 3.25 10 2],...
+%     'String', 'REPAIR', 'Style', 'pushbutton', ...
+%     'Tooltipstring', 'Writes repaired images', ...
+%     'BackgroundColor', [ 0.9 0.7 0.7], 'ForegroundColor','r',...
+%     'Callback', 'art_repairvol');
+% h_up = uicontrol(gcf, 'Units', 'characters', 'Position', [10 8 10 2],...
+%     'String', 'Up', 'Style', 'pushbutton', ...
+%     'TooltipString', 'Raise threshold for outliers', ...
+%     'Callback', 'art_threshup');
+% h_down = uicontrol(gcf, 'Units', 'characters', 'Position', [10 6 10 2],...
+%     'String', 'Down', 'Style', 'pushbutton', ...
+%     'TooltipString', 'Lower threshold for outliers', ...
+%     'Callback', 'art_threshdown');
 
 %guidata(gcf, g);
 guidata(gcf,[g delta mv_data]);
-setappdata(h_repair,'data',P);
-setappdata(h_addmargin,'data2',repair1_flag);
-setappdata(h_clipmvmt,'data3',repair1_flag);
+% setappdata(h_repair,'data',P);
+% setappdata(h_addmargin,'data2',repair1_flag);
+% setappdata(h_clipmvmt,'data3',repair1_flag);
 %setappdata(h_repair,'data3',GoRepair);
 
 % For GUI or RepairAlone, add deweighting margins to top plot
@@ -584,7 +584,7 @@ end
 
 if GoRepair == 1 | GoRepair == 2
     ImageFile = P(1,:);
-    [imgpath, imagname] = fileparts(ImageFile); 
+    [imgpath, imagname] = fileparts(ImageFile);
     [subjectpath, imagfold ] = fileparts(imgpath);
     [uppath2, up1name ] = fileparts(subjectpath);
     [uppath3, up2name ] = fileparts(uppath2);
@@ -606,7 +606,7 @@ if GoRepair == 1 | GoRepair == 2
     art_repairvol(P);
 end
 
-if GoRepair == 4 
+if GoRepair == 4
     %art_clipmvmt;
     outall_idx = unique([out_idx]);
     tempd = pwd;

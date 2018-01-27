@@ -33,9 +33,6 @@ function rest_detrend(ADataDir, APostfix,polyorder)
 		
 	% I have to create a for loop because detrend can support 2-dim at most
 	for x=1:nDim1,
-		rest_waitbar(x/nDim1, ...
-				'Removing Linear Trend, wait...', ...
-				'Detrend','Child','NeedCancelBtn');			
 		
 		oneAxialSlice =double(AllVolume(x, :, :, :));
 		oneAxialSlice =reshape(oneAxialSlice, 1*nDim2*nDim3, nDim4)';
@@ -77,9 +74,7 @@ function rest_detrend(ADataDir, APostfix,polyorder)
 	
 	sampleLength =size(theImgFileList,1);
 	for x=1:sampleLength,
-		rest_waitbar(x/sampleLength, ...
-					sprintf('Saving to {hdr/img} pair files\nwait...'), ...
-					'Remove linear trend Over','Child','NeedCancelBtn');
+
 		rest_writefile(single(AllVolume(:, :, :, x)), ...
 			sprintf('%s%s%.8d', ADataDir, filesep,x), ...
 			[nDim1,nDim2,nDim3],VoxelSize, Header,'single'); %Revised by YAN Chao-Gan, 090321. Detrended data will be stored in 'single' format. %'int16');
