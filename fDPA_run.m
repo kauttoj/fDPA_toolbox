@@ -2182,7 +2182,9 @@ if (AutoDataProcessParameter.VolumeArtifactRemoval==1)
                 movefile([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,AutoDataProcessParameter.SubjectID{i},filesep,DirImg(j).name], OutputDir);
             end
             DirImg=dir([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,'art*.*']);
-            movefile([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,DirImg(1).name], OutputDir);
+            for j=1:length(DirImg)
+                movefile([AutoDataProcessParameter.DataProcessDir,SESSION_PREFIX{SES},filesep,SourceDir,filesep,DirImg(j).name], OutputDir);
+            end
             
             fprintf(['Removing Volume Artifacts from Functional Images:',AutoDataProcessParameter.SubjectID{i},' OK\n']);
         end

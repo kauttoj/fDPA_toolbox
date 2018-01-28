@@ -156,7 +156,7 @@ set(handles.deweightlist, 'String', int2str(outdw_idx));
 
 
 % Update top chart for deweighting indices
-subplot(5,1,1)
+subplot(4,1,1)
 outerase = [1:nscans];
 axes_lim = get(gca, 'YLim');
 axes_height = [axes_lim(1) axes_lim(2)];

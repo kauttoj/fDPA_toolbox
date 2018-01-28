@@ -58,16 +58,16 @@ end
 clipout_idx = find(deltam(:,1) > MVMTTHRESHOLD)';
 
 % Update clip movement list (which is not shown in a text box)
-set(handles.clipmvmtlist, 'String', int2str(clipout_idx));
+% set(handles.clipmvmtlist, 'String', int2str(clipout_idx));
 
 % Combine with existing repair list
 out_idx = union(out_idx, clipout_idx);
-set(handles.indexedit, 'String', int2str(out_idx));
+% set(handles.indexedit, 'String', int2str(out_idx));
 
 
 
 % % Update top chart to include clip movement indices
-subplot(5,1,1)
+subplot(4,1,1)
 % outerase = [1:nscans];
 axes_lim = get(gca, 'YLim');
 axes_height = [axes_lim(1) axes_lim(2)];
